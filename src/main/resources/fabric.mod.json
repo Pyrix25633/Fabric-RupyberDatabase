@@ -1,0 +1,34 @@
+{
+	"schemaVersion": 1,
+	"id": "rupyber_database",
+	"version": "${version}",
+	"name": "Rupyber Database",
+	"description": "An API for Rupyber Studios Minecraft Mods that work with a Database",
+	"authors": [
+		"Rupyber Studios",
+		"Pyrix25633"
+	],
+	"contact": {
+		"homepage": "https://rupyberstudios.github.io/website/",
+		"sources": "https://github.com/Pyrix25633/Fabric-RupyberDatabase",
+		"issues": "https://github.com/Pyrix25633/Fabric-RupyberDatabase/issues"
+	},
+	"license": "GPL-3.0",
+	"icon": "assets/rupyber_database/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"net.rupyber_studios.rupyber_database.RupyberDatabase"
+		]
+	},
+	"mixins": [],
+	"depends": {
+		"fabricloader": ">=0.15.7",
+		"minecraft": "~1.20.4",
+		"java": ">=17",
+		"fabric-api": "*"
+	},
+	"suggests": {
+		"another-mod": "*"
+	}
+}

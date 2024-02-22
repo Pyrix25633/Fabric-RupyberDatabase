@@ -1,8 +1,8 @@
-package net.rupyber_studios.rupyber_database.config;
+package net.rupyber_studios.rupyber_database_api.config;
 
-import net.rupyber_studios.rupyber_database.table.IncidentType;
-import net.rupyber_studios.rupyber_database.table.Rank;
-import net.rupyber_studios.rupyber_database.table.ResponseCode;
+import net.rupyber_studios.rupyber_database_api.table.IncidentType;
+import net.rupyber_studios.rupyber_database_api.table.Rank;
+import net.rupyber_studios.rupyber_database_api.table.ResponseCode;
 
 import java.util.List;
 

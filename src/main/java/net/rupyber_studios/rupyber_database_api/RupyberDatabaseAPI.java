@@ -1,9 +1,9 @@
-package net.rupyber_studios.rupyber_database;
+package net.rupyber_studios.rupyber_database_api;
 
 import net.fabricmc.api.ModInitializer;
 
-import net.rupyber_studios.rupyber_database.config.PoliceTerminalConfig;
-import net.rupyber_studios.rupyber_database.table.*;
+import net.rupyber_studios.rupyber_database_api.config.PoliceTerminalConfig;
+import net.rupyber_studios.rupyber_database_api.table.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,7 +12,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
-public class RupyberDatabase implements ModInitializer {
+public class RupyberDatabaseAPI implements ModInitializer {
 	// This logger is used to write text to the console and the log file.
 	// It is considered best practice to use your mod id as the logger's name.
 	// That way, it's clear which mod wrote info, warnings, and errors.
@@ -30,7 +30,7 @@ public class RupyberDatabase implements ModInitializer {
 		connection = DriverManager.getConnection("jdbc:sqlite:" + worldPath + "rupyber.db");
 	}
 
-	public static void createTables() throws SQLException {
+	public static void createPoliceTerminalTables() throws SQLException {
 		Rank.createTable();
 		Player.createTable();
 		EmergencyCallNumber.createTable();
@@ -42,8 +42,13 @@ public class RupyberDatabase implements ModInitializer {
 		IncidentPlayer.createTable();
 	}
 
-	public static void updateTablesFromConfig(PoliceTerminalConfig config) throws SQLException {
+	public static void updatePoliceTerminalTablesFromConfig(PoliceTerminalConfig config) throws SQLException {
 		Rank.updateTableFromConfig(config);
-		// TODO: finish table updating from config
+		ResponseCode.updateTableFromConfig(config);
+		IncidentType.updateTableFromConfig(config);
+	}
+
+	public static void createMinebuckCurrencyTables() {
+		// TODO: transfer from Minebuck Currency
 	}
 }

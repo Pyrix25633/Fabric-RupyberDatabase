@@ -1,8 +1,8 @@
 {
 	"schemaVersion": 1,
-	"id": "rupyber_database",
+	"id": "rupyber_database_api",
 	"version": "${version}",
-	"name": "Rupyber Database",
+	"name": "Rupyber Database API",
 	"description": "An API for Rupyber Studios Minecraft Mods that work with a Database",
 	"authors": [
 		"Rupyber Studios",
@@ -10,15 +10,15 @@
 	],
 	"contact": {
 		"homepage": "https://rupyberstudios.github.io/website/",
-		"sources": "https://github.com/Pyrix25633/Fabric-RupyberDatabase",
-		"issues": "https://github.com/Pyrix25633/Fabric-RupyberDatabase/issues"
+		"sources": "https://github.com/Pyrix25633/Fabric-RupyberDatabaseAPI",
+		"issues": "https://github.com/Pyrix25633/Fabric-RupyberDatabaseAPI/issues"
 	},
 	"license": "GPL-3.0",
-	"icon": "assets/rupyber_database/icon.png",
+	"icon": "assets/rupyber_database_api/icon.png",
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"net.rupyber_studios.rupyber_database.RupyberDatabase"
+			"net.rupyber_studios.rupyber_database_api.RupyberDatabaseAPI"
 		]
 	},
 	"mixins": [],

@@ -8,6 +8,13 @@ import java.util.List;
 
 public abstract class PoliceTerminalConfig {
     public List<Rank> ranks;
+    public boolean callsignAreaUnitBeat;
+    public boolean callsignBeatUnit;
+    public boolean callsignUnitBeat;
+    public int callsignAreaMin;
+    public int callsignAreaMax;
+    public int callsignBeatMin;
+    public int callsignBeatMax;
     public List<String> callsignUnits;
     public List<ResponseCode> responseCodes;
     public List<IncidentType> incidentTypes;

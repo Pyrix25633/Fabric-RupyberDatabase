@@ -48,6 +48,10 @@ public class RupyberDatabaseAPI implements ModInitializer {
 		IncidentType.updateTableFromConfig(config);
 	}
 
+	public static void handlePoliceTerminalShutdown() throws SQLException {
+		Player.handleShutdown();
+	}
+
 	public static void createMinebuckCurrencyTables() {
 		// TODO: transfer from Minebuck Currency
 	}

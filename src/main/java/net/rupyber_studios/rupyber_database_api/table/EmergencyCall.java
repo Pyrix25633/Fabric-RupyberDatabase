@@ -1,11 +1,44 @@
 package net.rupyber_studios.rupyber_database_api.table;
 
+import net.minecraft.util.math.Vec3d;
 import net.rupyber_studios.rupyber_database_api.RupyberDatabaseAPI;
+import org.jetbrains.annotations.NotNull;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.UUID;
 
 public class EmergencyCall {
+    // ------
+    // Insert
+    // ------
+
+    public static void insert(@NotNull UUID uuid, @NotNull Vec3d pos, String description) throws SQLException {
+        Statement statement = RupyberDatabaseAPI.connection.createStatement();
+        ResultSet result = statement.executeQuery("""
+                SELECT CURRENT_DATE;""");
+        String currentDate = result.getString("CURRENT_DATE");
+        int number = EmergencyCallNumber.getNewCallNumber(currentDate);
+        PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
+                INSERT INTO emergencyCalls
+                (callNumber, locationX, locationY, locationZ, callerId, description)
+                VALUES (?, ?, ?, ?, (SELECT id FROM players WHERE uuid=?), ?);""");
+        preparedStatement.setInt(1, number);
+        preparedStatement.setInt(2, (int)pos.x);
+        preparedStatement.setInt(3, (int)pos.y);
+        preparedStatement.setInt(4, (int)pos.z);
+        preparedStatement.setString(5, uuid.toString());
+        preparedStatement.setString(6, description);
+        preparedStatement.execute();
+        preparedStatement.close();
+    }
+
+    // -------
+    // Startup
+    // -------
+
     public static void createTable() throws SQLException {
         Statement statement = RupyberDatabaseAPI.connection.createStatement();
         statement.execute("""

@@ -20,6 +20,20 @@ import java.util.List;
 import java.util.UUID;
 
 public class Player {
+    public UUID uuid;
+    public String username;
+    public boolean online;
+    public PlayerInfo info;
+    public boolean callsignReserved;
+
+    public Player(UUID uuid, String username, boolean online, PlayerInfo info, boolean callsignReserved) {
+        this.uuid = uuid;
+        this.username = username;
+        this.online = online;
+        this.info = info;
+        this.callsignReserved = callsignReserved;
+    }
+
     // ------
     // Select
     // ------
@@ -82,15 +96,28 @@ public class Player {
         return result.getString("callsign");
     }
 
-    public static @Nullable String selectSettingsFromUuid(@NotNull UUID uuid) throws SQLException {
+    public static @Nullable String selectSettings(int id) throws SQLException {
         PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
                 SELECT settings
                 FROM players
-                WHERE uuid=?;""");
-        preparedStatement.setString(1, uuid.toString());
+                WHERE id=?;""");
+        preparedStatement.setInt(1, id);
         ResultSet result = preparedStatement.executeQuery();
-        if(!result.next()) return null;
-        return result.getString("settings");
+        if(result.next()) return result.getString("settings");
+        preparedStatement.close();
+        return null;
+    }
+
+    public static int selectIdFromCallsign(String callsign) throws SQLException {
+        PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
+                SELECT id
+                FROM players
+                WHERE callsign=?;""");
+        preparedStatement.setString(1, callsign);
+        ResultSet result = preparedStatement.executeQuery();
+        if(result.next()) return result.getInt("id");
+        preparedStatement.close();
+        return 0;
     }
 
     public static @Nullable UUID selectUuidFromCallsign(String callsign) throws SQLException {

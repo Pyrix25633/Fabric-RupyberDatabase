@@ -1,9 +1,16 @@
 package net.rupyber_studios.rupyber_database_api.util;
 
+import net.rupyber_studios.rupyber_database_api.RupyberDatabaseAPI;
 import net.rupyber_studios.rupyber_database_api.config.PoliceTerminalConfig;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Unmodifiable;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -14,7 +21,29 @@ public class Callsign {
     private static final Pattern BEAT_UNIT_PATTERN = Pattern.compile("^(\\d+)-(\\w+)$");
     private static final Pattern UNIT_BEAT_PATTERN = Pattern.compile("^(\\w+)-(\\d+)$");
 
-    public static String createRandomCallsign(@NotNull PoliceTerminalConfig config) {
+    public static @NotNull @Unmodifiable List<String> selectAll() throws SQLException {
+        List<String> callsigns = new ArrayList<>();
+        Statement statement = RupyberDatabaseAPI.connection.createStatement();
+        ResultSet result = statement.executeQuery("""
+                SELECT callsign
+                FROM players
+                WHERE callsign IS NOT NULL;""");
+        while (result.next())
+            callsigns.add(result.getString("callsign"));
+        statement.close();
+        return callsigns;
+    }
+
+    public static String createUnusedCallsign() throws SQLException {
+        String callsign;
+        do {
+            callsign = createRandomCallsign();
+        } while(isInUse(callsign));
+        return callsign;
+    }
+
+    public static String createRandomCallsign() {
+        PoliceTerminalConfig config = RupyberDatabaseAPI.policeTerminalConfig;
         ArrayList<String> types = new ArrayList<>();
         if(config.callsignBeatUnit) types.add("B-U");
         if(config.callsignUnitBeat) types.add("U-B");
@@ -30,7 +59,18 @@ public class Callsign {
         };
     }
 
-    public static boolean isValid(String callsign, PoliceTerminalConfig config) {
+    public static boolean isInUse(String callsign) throws SQLException {
+        PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
+                SELECT uuid
+                FROM players
+                WHERE callsign=?;""");
+        preparedStatement.setString(1, callsign);
+        ResultSet result = preparedStatement.executeQuery();
+        return result.next();
+    }
+
+    public static boolean isValid(String callsign) {
+        PoliceTerminalConfig config = RupyberDatabaseAPI.policeTerminalConfig;
         Matcher matcher = AREA_UNIT_BEAT_PATTERN.matcher(callsign);
         if(matcher.find())
             return isAreaUnitBeatValid(matcher, config);

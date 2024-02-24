@@ -61,7 +61,7 @@ public class IncidentType {
         int size = config.incidentTypes.size();
         for(int i = 0; i < size - 1; i++)
             query.append(config.incidentTypes.get(i).id).append(", ");
-        query.append(config.incidentTypes.get(size - 1)).append(");");
+        query.append(config.incidentTypes.get(size - 1).id).append(");");
 
         ResultSet result = statement.executeQuery(query.toString());
         ArrayList<Integer> missingIncidentTypeIds = new ArrayList<>();

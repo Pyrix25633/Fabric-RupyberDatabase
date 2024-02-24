@@ -61,7 +61,7 @@ public class ResponseCode {
         int size = config.responseCodes.size();
         for(int i = 0; i < size - 1; i++)
             query.append(config.responseCodes.get(i).id).append(", ");
-        query.append(config.responseCodes.get(size - 1)).append(");");
+        query.append(config.responseCodes.get(size - 1).id).append(");");
 
         ResultSet result = statement.executeQuery(query.toString());
         ArrayList<Integer> missingResponseCodeIds = new ArrayList<>();

@@ -99,9 +99,9 @@ public class ResponseCode {
         preparedStatement.close();
     }
 
-    public static void loadResponseCodes(@NotNull PoliceTerminalConfig config) {
+    public static void loadResponseCodes() {
         responseCodes = new HashMap<>();
-        for(ResponseCode responseCode : config.responseCodes) {
+        for(ResponseCode responseCode : RupyberDatabaseAPI.policeTerminalConfig.responseCodes) {
             responseCodes.put(responseCode.id, responseCode);
         }
     }

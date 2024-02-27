@@ -99,9 +99,9 @@ public class IncidentType {
         preparedStatement.close();
     }
 
-    public static void loadIncidentTypes(@NotNull PoliceTerminalConfig config) {
+    public static void loadIncidentTypes() {
         incidentTypes = new HashMap<>();
-        for(IncidentType incidentType : config.incidentTypes) {
+        for(IncidentType incidentType : RupyberDatabaseAPI.policeTerminalConfig.incidentTypes) {
             incidentTypes.put(incidentType.id, incidentType);
         }
     }

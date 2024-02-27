@@ -24,29 +24,32 @@ import java.sql.SQLException;
 import java.util.*;
 
 public class Seed {
-    private static final int TEST_RECORDS = 10000;
+    private static final int TEST_RECORDS = 1000000;
     private static final Random RANDOM = new Random();
     private static final Faker FAKER = new Faker();
-    private static final Map<UUID, Player> PLAYERS = new HashMap<>();
 
     public static void main(String[] args) throws IOException, SQLException {
         RupyberDatabaseAPI.connect(Path.of("./test/."));
-        PoliceTerminalConfig config = loadPoliceTerminalConfig();
-        RupyberDatabaseAPI.updatePoliceTerminalTablesFromConfig(config);
+        loadPoliceTerminalConfig();
+        RupyberDatabaseAPI.updatePoliceTerminalTablesFromConfig();
         PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
                 INSERT INTO players
                 (uuid, username, online, status, rankId, callsign, callsignReserved)
                 VALUES (?, ?, ? ,?, ?, ?, ?)""");
         RupyberDatabaseAPI.LOGGER.info("Started seeding...");
         long start = System.currentTimeMillis();
-        for(int i = 0; i < TEST_RECORDS; i++)
+        for(int i = 0; i < TEST_RECORDS; i++) {
             insertPlayer(preparedStatement);
+            double progress = ((double) i / TEST_RECORDS) * 100;
+            if(progress % 5 == 0)
+                RupyberDatabaseAPI.LOGGER.info("Seeding... " + progress + "%");
+        }
         long end = System.currentTimeMillis();
         RupyberDatabaseAPI.LOGGER.info("SEED SUCCESSFUL in " + (end - start) + "ms");
         preparedStatement.close();
     }
 
-    private static @NotNull PoliceTerminalConfig loadPoliceTerminalConfig() throws IOException {
+    private static void loadPoliceTerminalConfig() throws IOException {
         InputStream configInput = new FileInputStream("./test/police_terminal_config.json");
         JSONObject configJson = new JSONObject(new String(configInput.readAllBytes()));
         PoliceTerminalConfig config = new PoliceTerminalConfig() {};
@@ -86,80 +89,52 @@ public class Seed {
                         incidentType.getString("description")));
         }
         RupyberDatabaseAPI.setPoliceTerminalConfig(config);
-        return config;
     }
 
-    private static void insertPlayer(@NotNull PreparedStatement preparedStatement) throws SQLException {
-        Player player = fakePlayer();
-        preparedStatement.setString(1, player.uuid.toString());
-        preparedStatement.setString(2, player.username);
-        preparedStatement.setBoolean(3, player.online);
-        if(player.info != null) {
-            preparedStatement.setInt(4, player.info.status.getId());
-            preparedStatement.setInt(5, player.info.rank.id);
-            preparedStatement.setString(6, player.info.callsign);
-        }
-        else {
-            preparedStatement.setObject(4, null);
-            preparedStatement.setObject(5, null);
-            preparedStatement.setObject(6, null);
-        }
-        preparedStatement.setBoolean(7, player.callsignReserved);
-        preparedStatement.execute();
+    private static void insertPlayer(@NotNull PreparedStatement preparedStatement) {
+        boolean validUser;
+        do {
+            try {
+                Player player = fakePlayer();
+                preparedStatement.setString(1, player.uuid.toString());
+                preparedStatement.setString(2, player.username);
+                preparedStatement.setBoolean(3, player.online);
+                if(player.info != null) {
+                    preparedStatement.setInt(4, player.info.status.getId());
+                    preparedStatement.setInt(5, player.info.rank.id);
+                    preparedStatement.setString(6, player.info.callsign);
+                }
+                else {
+                    preparedStatement.setObject(4, null);
+                    preparedStatement.setObject(5, null);
+                    preparedStatement.setObject(6, null);
+                }
+                preparedStatement.setBoolean(7, player.callsignReserved);
+                preparedStatement.execute();
+                validUser = true;
+            } catch(SQLException ingored) {
+                validUser = false;
+            }
+        } while (!validUser);
     }
 
     private static @NotNull Player fakePlayer() {
         PoliceTerminalConfig config = RupyberDatabaseAPI.policeTerminalConfig;
-        // UUID
-        UUID uuid;
-        do {
-            uuid = UUID.randomUUID();
-        } while(PLAYERS.get(uuid) != null);
-        // Username
-        String username;
-        boolean found;
-        do {
-            username = generateUsername();
-            found = false;
-            for(Player player : PLAYERS.values()) {
-                if(player.username == null) continue;
-                if(player.username.equals(username)) {
-                    found = true;
-                    break;
-                }
-            }
-        } while(found);
-        // Online
+        UUID uuid = UUID.randomUUID();
+        String username = generateUsername();
         boolean online = RANDOM.nextBoolean();
-        // Status, rank and callsign
         if(RANDOM.nextBoolean()) {
             Rank rank = config.ranks.get(RANDOM.nextInt(config.ranks.size()));
             Status status = Status.values()[RANDOM.nextInt(Status.values().length)];
             String callsign = null;
             if(RANDOM.nextBoolean()) {
-                do {
-                    callsign = Callsign.createRandomCallsign();
-                    found = false;
-                    for(Player player : PLAYERS.values()) {
-                        if(player.info == null) continue;
-                        if(player.info.callsign == null) continue;
-                        if(player.info.callsign.equals(callsign)) {
-                            found = true;
-                            break;
-                        }
-                    }
-                } while(found);
+                callsign = Callsign.createRandomCallsign();
             }
-            Player player = new Player(uuid, username, online, new PlayerInfo(status, rank, callsign),
+            return new Player(uuid, username, online, new PlayerInfo(status, rank, callsign),
                     callsign != null && RANDOM.nextBoolean());
-            PLAYERS.put(uuid, player);
-            return player;
         }
-        else {
-            Player player = new Player(uuid, username, online, null, false);
-            PLAYERS.put(uuid, player);
-            return player;
-        }
+        else
+            return new Player(uuid, username, online, null, false);
     }
 
     private static @Nullable String generateUsername() {

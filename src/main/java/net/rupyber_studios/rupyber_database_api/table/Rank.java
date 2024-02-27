@@ -94,9 +94,9 @@ public class Rank {
         preparedStatement.close();
     }
 
-    public static void loadRanks(@NotNull PoliceTerminalConfig config) {
+    public static void loadRanks() {
         ranks = new HashMap<>();
-        for(Rank rank : config.ranks) {
+        for(Rank rank : RupyberDatabaseAPI.policeTerminalConfig.ranks) {
             ranks.put(rank.id, rank);
         }
     }

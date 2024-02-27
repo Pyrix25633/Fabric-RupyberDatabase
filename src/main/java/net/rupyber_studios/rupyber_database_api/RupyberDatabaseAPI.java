@@ -32,11 +32,11 @@ public class RupyberDatabaseAPI implements ModInitializer {
 			Path worldPath = server.getSavePath(WorldSavePath.ROOT);
 			connect(worldPath);
 			if(policeTerminalInitialized) {
-				Rank.loadRanks(policeTerminalConfig);
-				ResponseCode.loadResponseCodes(policeTerminalConfig);
-				IncidentType.loadIncidentTypes(policeTerminalConfig);
+				Rank.loadRanks();
+				ResponseCode.loadResponseCodes();
+				IncidentType.loadIncidentTypes();
 				createPoliceTerminalTables();
-				updatePoliceTerminalTablesFromConfig(policeTerminalConfig);
+				updatePoliceTerminalTablesFromConfig();
 				handlePoliceTerminalShutdown();
 			}
 			initialized.release();
@@ -93,7 +93,8 @@ public class RupyberDatabaseAPI implements ModInitializer {
 		}
 	}
 
-	public static void updatePoliceTerminalTablesFromConfig(PoliceTerminalConfig config) {
+	public static void updatePoliceTerminalTablesFromConfig() {
+		PoliceTerminalConfig config = policeTerminalConfig;
 		try {
 			Rank.updateTableFromConfig(config);
 			ResponseCode.updateTableFromConfig(config);

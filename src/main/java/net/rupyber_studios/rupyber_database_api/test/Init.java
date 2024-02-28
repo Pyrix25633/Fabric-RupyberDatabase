@@ -6,7 +6,8 @@ import java.nio.file.Path;
 
 public class Init {
     public static void main(String[] args) {
-        RupyberDatabaseAPI.connect(Path.of("./test/."));
+        RupyberDatabaseAPI.connectIfNotConnected(Path.of("./test/."));
         RupyberDatabaseAPI.createPoliceTerminalTables();
+        RupyberDatabaseAPI.disconnectIfConnected();
     }
 }

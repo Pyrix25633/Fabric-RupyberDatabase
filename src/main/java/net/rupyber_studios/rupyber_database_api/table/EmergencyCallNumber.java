@@ -52,7 +52,7 @@ public interface EmergencyCallNumber {
                 (day, number)
                 VALUES (?, ?);""");
         preparedStatement.setString(1, currentDate);
-        preparedStatement.setInt(2, number + 1);
+        preparedStatement.setInt(2, number);
         preparedStatement.execute();
         preparedStatement.close();
     }

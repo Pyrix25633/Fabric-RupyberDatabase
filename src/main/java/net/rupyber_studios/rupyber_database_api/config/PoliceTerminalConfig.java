@@ -96,7 +96,8 @@ public abstract class PoliceTerminalConfig {
         config.ranks = new ArrayList<>();
         for(Object o : ranks) {
             if(o instanceof JSONObject rank)
-                config.ranks.add(new Rank(rank.getInt("id"), rank.getString("rank"), rank.getInt("color")));
+                config.ranks.add(new Rank(rank.getInt("id"), rank.getString("rank"),
+                        rank.getBoolean("emergencyOperator"), rank.getInt("color")));
         }
         JSONArray callsignUnits = configJson.getJSONArray("callsignUnits");
         config.callsignUnits = new ArrayList<>();

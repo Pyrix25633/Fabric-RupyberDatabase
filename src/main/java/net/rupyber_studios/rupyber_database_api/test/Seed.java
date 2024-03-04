@@ -18,7 +18,7 @@ import java.sql.SQLException;
 import java.util.*;
 
 public class Seed {
-    private static final int TEST_RECORDS = 1000000;
+    private static final int TEST_RECORDS = 100000;
     private static final Random RANDOM = new Random();
     private static final Faker FAKER = new Faker();
 
@@ -32,15 +32,20 @@ public class Seed {
                 VALUES (?, ?, ? ,?, ?, ?, ?)""");
         RupyberDatabaseAPI.LOGGER.info("Started seeding...");
         long start = System.currentTimeMillis();
+        long last = start;
         for(int i = 0; i < TEST_RECORDS; i++) {
             insertPlayer(preparedStatement);
             double progress = ((double) i / TEST_RECORDS) * 100;
-            if(progress % 5 == 0)
-                RupyberDatabaseAPI.LOGGER.info("Seeding... " + progress + "%");
+            long now = System.currentTimeMillis();
+            if(now - last > 1000) {
+                last = now;
+                RupyberDatabaseAPI.LOGGER.info(String.format("Seeding... %3.2f%%", progress));
+            }
         }
         long end = System.currentTimeMillis();
         RupyberDatabaseAPI.LOGGER.info("SEED SUCCESSFUL in " + (end - start) + "ms");
         preparedStatement.close();
+        RupyberDatabaseAPI.disconnectIfConnected();
     }
 
     private static void insertPlayer(@NotNull PreparedStatement preparedStatement) {
@@ -68,7 +73,6 @@ public class Seed {
                 validUser = false;
             }
         } while (!validUser);
-        RupyberDatabaseAPI.disconnectIfConnected();
     }
 
     private static @NotNull Player fakePlayer() {

@@ -19,14 +19,16 @@ public class Rank {
 
     public int id = 10;
     public String rank = "New Rank";
+    public boolean emergencyOperator = false;
     @ConfigEntry.ColorPicker
     public int color = 0x5555FF;
 
     public Rank() {}
 
-    public Rank(int id, String rank, int color) {
+    public Rank(int id, String rank, boolean emergencyOperator, int color) {
         this.id = id;
         this.rank = rank;
+        this.emergencyOperator = emergencyOperator;
         this.color = color;
     }
 
@@ -37,6 +39,7 @@ public class Rank {
                     id INT,
                     rank VARCHAR(32) NOT NULL,
                     color INT NOT NULL,
+                    emergencyOperator BOOLEAN NOT NULL,
                     PRIMARY KEY (id),
                     UNIQUE (rank)
                 );""");
@@ -72,12 +75,13 @@ public class Rank {
     private static void replaceIntoTable(@NotNull PoliceTerminalConfig config) throws SQLException {
         PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
                 REPLACE INTO ranks
-                (id, rank, color)
-                VALUES (?, ?, ?);""");
+                (id, rank, emergencyOperator, color)
+                VALUES (?, ?, ?, ?);""");
         for(Rank rank : config.ranks) {
             preparedStatement.setInt(1, rank.id);
             preparedStatement.setString(2, rank.rank);
-            preparedStatement.setInt(3, rank.color);
+            preparedStatement.setBoolean(3, rank.emergencyOperator);
+            preparedStatement.setInt(4, rank.color);
             preparedStatement.execute();
         }
         preparedStatement.close();

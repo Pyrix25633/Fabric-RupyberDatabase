@@ -24,12 +24,16 @@ public class EmergencyCall {
         return (int)Math.ceil((double)result.getInt("records") / RupyberDatabaseAPI.policeTerminalConfig.recordsPerPage);
     }
 
-    public static @NotNull JSONArray selectEmergencyCalls(int page, String orderField, boolean orderAscending) throws SQLException {
+    public static @NotNull JSONArray selectEmergencyCalls(int page, String orderField, boolean orderAscending)
+            throws SQLException {
         PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
-                SELECT callNumber, locationX, locationY, locationZ, createdAt, p.username as caller, closed
+                SELECT callNumber, locationX, locationY, locationZ, createdAt,
+                    c.username as caller, r.username as responder, closed
                 FROM emergencyCalls AS e
-                INNER JOIN players AS p
-                ON e.callerId=p.id
+                INNER JOIN players AS c
+                ON e.callerId=c.id
+                INNER JOIN players AS r
+                ON e.responderId=r.id
                 ORDER BY #1 #2
                 LIMIT ?, ?;"""
                 .replace("#1", orderField)
@@ -46,6 +50,7 @@ public class EmergencyCall {
             emergencyCall.put("locationZ", result.getInt("locationZ"));
             emergencyCall.put("createdAt", result.getString("createdAt"));
             emergencyCall.put("caller", result.getString("caller"));
+            emergencyCall.put("responder", result.getString("responder"));
             emergencyCall.put("closed", result.getBoolean("closed"));
             emergencyCalls.put(emergencyCall);
         }
@@ -56,7 +61,8 @@ public class EmergencyCall {
     // Insert
     // ------
 
-    public static void insert(@NotNull UUID uuid, @NotNull Vec3d pos, String description) throws SQLException {
+    public static int insertAndReturnCallNumber(@NotNull UUID callerUuid, @NotNull UUID responderUuid,
+                                                @NotNull Vec3d pos, String description) throws SQLException {
         Statement statement = RupyberDatabaseAPI.connection.createStatement();
         ResultSet result = statement.executeQuery("""
                 SELECT CURRENT_DATE;""");
@@ -64,16 +70,18 @@ public class EmergencyCall {
         int number = EmergencyCallNumber.getNewCallNumber(currentDate);
         PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
                 INSERT INTO emergencyCalls
-                (callNumber, locationX, locationY, locationZ, callerId, description)
-                VALUES (?, ?, ?, ?, (SELECT id FROM players WHERE uuid=?), ?);""");
+                (callNumber, locationX, locationY, locationZ, callerId, responderId, description)
+                VALUES (?, ?, ?, ?, (SELECT id FROM players WHERE uuid=?), (SELECT id FROM players WHERE uuid=?), ?);""");
         preparedStatement.setInt(1, number);
         preparedStatement.setInt(2, (int)pos.x);
         preparedStatement.setInt(3, (int)pos.y);
         preparedStatement.setInt(4, (int)pos.z);
-        preparedStatement.setString(5, uuid.toString());
-        preparedStatement.setString(6, description);
+        preparedStatement.setString(5, callerUuid.toString());
+        preparedStatement.setString(6, responderUuid.toString());
+        preparedStatement.setString(7, description);
         preparedStatement.execute();
         preparedStatement.close();
+        return number;
     }
 
     // -------
@@ -91,6 +99,7 @@ public class EmergencyCall {
                     locationZ INT NOT NULL,
                     createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     callerId INT NOT NULL,
+                    responderId INT NOT NULL,
                     closed BOOLEAN NOT NULL DEFAULT FALSE,
                     description VARCHAR(256),
                     FOREIGN KEY (callerId) REFERENCES players(id)

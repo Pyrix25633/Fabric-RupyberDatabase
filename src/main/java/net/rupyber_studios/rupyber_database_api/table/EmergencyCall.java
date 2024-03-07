@@ -3,6 +3,7 @@ package net.rupyber_studios.rupyber_database_api.table;
 import net.minecraft.util.math.Vec3d;
 import net.rupyber_studios.rupyber_database_api.RupyberDatabaseAPI;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -10,12 +11,64 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public class EmergencyCall {
+    public int id;
+    public int callNumber;
+    public Vec3d location;
+    public String createdAt;
+    public int callerId;
+    public int responderId;
+    public boolean closed;
+    public String description;
+
+    public EmergencyCall(int id, int callNumber, Vec3d location, String createdAt, int callerId, int responderId,
+                         boolean closed, String description) {
+        this.id = id;
+        this.callNumber = callNumber;
+        this.location = location;
+        this.createdAt = createdAt;
+        this.callerId = callerId;
+        this.responderId = responderId;
+        this.closed = closed;
+        this.description = description;
+    }
+
     // ------
     // Select
     // ------
+
+    public static @Nullable EmergencyCall selectFromCallNumber(int callNumber) throws SQLException {
+        PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
+                SELECT *
+                FROM emergencyCalls
+                WHERE callNumber=? AND closed=FALSE;""");
+        preparedStatement.setInt(1, callNumber);
+        ResultSet result = preparedStatement.executeQuery();
+        if(result.next()) return new EmergencyCall(result.getInt("id"), callNumber,
+                new Vec3d(result.getInt("locationX"), result.getInt("locationY"), result.getInt("locationZ")),
+                result.getString("createdAt"), result.getInt("callerId"), result.getInt("responderId"),
+                result.getBoolean("closed"), result.getString("description"));
+        preparedStatement.close();
+        return null;
+    }
+
+    public static @NotNull List<Integer> selectCallNumberWhereClosedFalse() throws SQLException {
+        Statement statement = RupyberDatabaseAPI.connection.createStatement();
+        ResultSet result = statement.executeQuery("""
+                SELECT callNumber
+                FROM emergencyCalls
+                WHERE closed=FALSE;""");
+        List<Integer> callNumbers = new ArrayList<>();
+        while(result.next()) {
+            callNumbers.add(result.getInt("callNumber"));
+        }
+        statement.close();
+        return callNumbers;
+    }
 
     public static int selectNumberOfEmergencyCallPages() throws SQLException {
         Statement statement = RupyberDatabaseAPI.connection.createStatement();
@@ -54,7 +107,22 @@ public class EmergencyCall {
             emergencyCall.put("closed", result.getBoolean("closed"));
             emergencyCalls.put(emergencyCall);
         }
+        preparedStatement.close();
         return emergencyCalls;
+    }
+
+    // ------
+    // Update
+    // ------
+
+    public static void updateClosedTrue(int id) throws SQLException {
+        PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
+                UPDATE emergencyCalls
+                SET closed=TRUE
+                WHERE id=?;""");
+        preparedStatement.setInt(1, id);
+        preparedStatement.execute();
+        preparedStatement.close();
     }
 
     // ------

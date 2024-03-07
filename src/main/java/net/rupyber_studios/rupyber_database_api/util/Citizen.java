@@ -37,6 +37,7 @@ public interface Citizen {
             citizen.put("online", result.getBoolean("online"));
             citizens.put(citizen);
         }
+        preparedStatement.close();
         return citizens;
     }
 }

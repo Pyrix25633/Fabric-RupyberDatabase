@@ -1,18 +1,17 @@
 package net.rupyber_studios.rupyber_database_api.table;
 
-import net.minecraft.util.Pair;
-import net.rupyber_studios.rupyber_database_api.RupyberDatabaseAPI;
 import net.rupyber_studios.rupyber_database_api.config.PoliceTerminalConfig;
+import net.rupyber_studios.rupyber_database_api.jooq.tables.records.PlayersRecord;
 import net.rupyber_studios.rupyber_database_api.util.PlayerInfo;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jooq.*;
+import org.jooq.impl.DSL;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.List;
 import java.util.UUID;
+
+import static net.rupyber_studios.rupyber_database_api.RupyberDatabaseAPI.context;
+import static net.rupyber_studios.rupyber_database_api.jooq.Tables.*;
 
 public class Player {
     public int id;
@@ -39,70 +38,58 @@ public class Player {
     // Select
     // ------
 
-    public static String selectUsernameFromUuid(@NotNull UUID uuid) throws SQLException {
-        PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
-                SELECT username
-                FROM players
-                WHERE uuid=?;""");
-        preparedStatement.setString(1, uuid.toString());
-        ResultSet result = preparedStatement.executeQuery();
-        if(!result.next()) return "";
-        String username = result.getString("username");
-        return username != null ? username : uuid.toString();
+    public static @Nullable String selectUsernameWhereUuid(@NotNull UUID uuid) {
+        Record1<String> username = context.select(Players.username)
+                .from(Players)
+                .where(Players.uuid.eq(uuid.toString()))
+                .fetchOne();
+        if(username == null) return null;
+        return username.value1();
     }
 
-    public static @Nullable Integer selectIdFromUuid(@NotNull UUID uuid) throws SQLException {
-        PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
-                SELECT id
-                FROM players
-                WHERE uuid=?;""");
-        preparedStatement.setString(1, uuid.toString());
-        ResultSet result = preparedStatement.executeQuery();
-        if(result.next()) return result.getInt("id");
-        preparedStatement.close();
-        return null;
+    public static @Nullable Integer selectIdWhereUuid(@NotNull UUID uuid) {
+        Record1<Integer> id = context.select(Players.id)
+                .from(Players)
+                .where(Players.uuid.eq(uuid.toString()))
+                .fetchOne();
+        if(id == null) return null;
+        return id.value1();
     }
 
-    public static @Nullable UUID selectUuidFromId(int id) throws SQLException {
-        PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
-                SELECT uuid
-                FROM players
-                WHERE id=?;""");
-        preparedStatement.setInt(1, id);
-        ResultSet result = preparedStatement.executeQuery();
-        if(result.next()) return UUID.fromString(result.getString("uuid"));
-        preparedStatement.close();
-        return null;
+    public static @Nullable UUID selectUuid(int id) {
+        Record1<String> uuid = context.select(Players.uuid)
+                .from(Players)
+                .where(Players.id.eq(id))
+                .fetchOne();
+        if(uuid == null) return null;
+        return UUID.fromString(uuid.value1());
     }
 
-    public static @Nullable String selectSettings(int id) throws SQLException {
-        PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
-                SELECT settings
-                FROM players
-                WHERE id=?;""");
-        preparedStatement.setInt(1, id);
-        ResultSet result = preparedStatement.executeQuery();
-        if(result.next()) return result.getString("settings");
-        preparedStatement.close();
-        return null;
+    public static @Nullable String selectSettings(int id) {
+        Record1<String> settings = context.select(Players.settings)
+                .from(Players)
+                .where(Players.id.eq(id))
+                .fetchOne();
+        if(settings == null) return null;
+        return settings.value1();
     }
 
     // -----------
     // Player join
     // -----------
 
-    public static void insertOrUpdate(UUID uuid, String username) throws SQLException {
-        Pair<Integer, UUID> idUuid = selectIdAndUuidFromUsername(username);
+    public static void insertOrUpdate(UUID uuid, String username) {
+        Record2<Integer, String> idUuid = selectIdAndUuidFromUsername(username);
         if(idUuid != null) {
-            if(idUuid.getRight().equals(uuid)) {
-                updateOnlineTrue(idUuid.getLeft());
+            if(idUuid.get(Players.uuid).equals(uuid.toString())) {
+                updateOnlineTrue(idUuid.get(Players.id));
                 return;
             }
             else {
-                updateUsernameNull(idUuid.getLeft());
+                updateUsernameNull(idUuid.get(Players.id));
             }
         }
-        Integer id = selectIdFromUuid(uuid);
+        Integer id = selectIdWhereUuid(uuid);
         if(id != null) {
             updateOnlineTrue(id);
         }
@@ -111,142 +98,90 @@ public class Player {
         }
     }
 
-    private static @Nullable Pair<Integer, UUID> selectIdAndUuidFromUsername(@NotNull String username) throws SQLException {
-        PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
-                SELECT id, uuid
-                FROM players
-                WHERE username=?;""");
-        preparedStatement.setString(1, username);
-        ResultSet result = preparedStatement.executeQuery();
-        if(result.next()) return new Pair<>(result.getInt("id"), UUID.fromString(result.getString("uuid")));
-        preparedStatement.close();
-        return null;
+    private static @Nullable Record2<Integer, String> selectIdAndUuidFromUsername(@NotNull String username) {
+        return context.select(Players.id, Players.uuid)
+                .from(Players)
+                .where(Players.username.eq(username))
+                .fetchOne();
     }
 
-    private static void updateOnlineTrue(int id) throws SQLException {
-        PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
-                        UPDATE players
-                        SET online=TRUE
-                        WHERE id=?;""");
-        preparedStatement.setInt(1, id);
-        preparedStatement.execute();
-        preparedStatement.close();
+    private static void updateOnlineTrue(int id) {
+        context.update(Players)
+                .set(Players.online, true)
+                .where(Players.id.eq(id))
+                .execute();
     }
 
-    private static void updateUsernameNull(int id) throws SQLException {
-        PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
-                        UPDATE players
-                        SET username=NULL
-                        WHERE id=?;""");
-        preparedStatement.setInt(1, id);
-        preparedStatement.execute();
-        preparedStatement.close();
+    private static void updateUsernameNull(int id) {
+        context.update(Players)
+                .set(Players.username, DSL.value(null, Players.username))
+                .where(Players.id.eq(id))
+                .execute();
     }
 
-    private static void insert(@NotNull UUID uuid, @NotNull String username) throws SQLException {
-        PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
-                    INSERT INTO players
-                    (uuid, username)
-                    VALUES (?, ?);""");
-        preparedStatement.setString(1, uuid.toString());
-        preparedStatement.setString(2, username);
-        preparedStatement.execute();
-        preparedStatement.close();
+    private static void insert(@NotNull UUID uuid, @NotNull String username) {
+        context.insertInto(Players)
+                .set(Players.uuid, uuid.toString())
+                .set(Players.username, username)
+                .execute();
     }
 
-    private static @Nullable Pair<Integer, Pair<Integer, Boolean>> selectIdAndRankIdAndCallsignReservedFromUuid(
-            @NotNull UUID uuid)
-            throws SQLException {
-        PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
-                SELECT id, rankId, callsignReserved
-                FROM players
-                WHERE uuid=?;""");
-        preparedStatement.setString(1, uuid.toString());
-        ResultSet result = preparedStatement.executeQuery();
-        if(result.next()) return new Pair<>(result.getInt("id"),
-                new Pair<>(result.getInt("rankId"), result.getBoolean("callsignReserved")));
-        preparedStatement.close();
-        return null;
+    private static @Nullable Record3<Integer, Integer, Boolean> selectIdAndRankIdAndCallsignReservedFromUuid(@NotNull UUID uuid) {
+        return context.select(Players.id, Players.rankId, Players.callsignReserved)
+                .from(Players)
+                .where(Players.uuid.eq(uuid.toString()))
+                .fetchOne();
     }
 
     // --------------------
     // Startup and shutdown
     // --------------------
 
-    public static void createTable() throws SQLException {
-        Statement statement = RupyberDatabaseAPI.connection.createStatement();
-        statement.execute("""
-                CREATE TABLE IF NOT EXISTS players (
-                    id INTEGER PRIMARY KEY,
-                    uuid CHAR(36) NOT NULL,
-                    username VARCHAR(16) NULL,
-                    online BOOLEAN NOT NULL DEFAULT TRUE,
-                    status INT NULL DEFAULT NULL,
-                    rankId INT NULL DEFAULT NULL,
-                    callsign VARCHAR(16) NULL DEFAULT NULL,
-                    callsignReserved BOOLEAN NOT NULL DEFAULT FALSE,
-                    password CHAR(8) NULL DEFAULT NULL,
-                    token CHAR(16) NULL DEFAULT NULL,
-                    settings VARCHAR(64) NOT NULL DEFAULT '{"compactMode":false,"condensedFont":false,"sharpMode":false}',
-                    UNIQUE (uuid),
-                    UNIQUE (username),
-                    UNIQUE (callsign),
-                    FOREIGN KEY (rankId) REFERENCES ranks(id)
-                );""");
-        statement.close();
+    public static void createTable() {
+        context.createTableIfNotExists(Players).execute();
     }
 
-    public static void updateTableWithNewRankIds(PoliceTerminalConfig config, @NotNull List<Integer> missingRankIds)
-            throws SQLException {
-        PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
-                UPDATE players
-                SET rankId=?
-                WHERE rankId=?;""");
-        for(int rankId : missingRankIds) {
+    public static void updateTableWithNewRankIds(PoliceTerminalConfig config, @NotNull Result<Record1<Integer>> missingRankIds) {
+        for(Record1<Integer> rankIdRecord : missingRankIds) {
+            int rankId = rankIdRecord.value1();
             Integer nearestRankId = 0;
             for(Rank existingRank : config.ranks) {
                 if(existingRank.id < rankId && (existingRank.id - rankId) < (nearestRankId - rankId))
                     nearestRankId = existingRank.id;
             }
             if(nearestRankId == 0) nearestRankId = null;
-            preparedStatement.setObject(1, nearestRankId);
-            preparedStatement.setInt(2, rankId);
-            preparedStatement.execute();
+            context.update(Players)
+                    .set(Players.rankId, nearestRankId)
+                    .where(Players.rankId.eq(rankId))
+                    .execute();
         }
-        preparedStatement.close();
     }
 
-    public static void handleDisconnection(@NotNull UUID uuid) throws SQLException {
-        Pair<Integer, Pair<Integer, Boolean>> idRankIdCallsignReserved = selectIdAndRankIdAndCallsignReservedFromUuid(uuid);
+    public static void handleDisconnection(@NotNull UUID uuid) {
+        Record3<Integer, Integer, Boolean> idRankIdCallsignReserved = selectIdAndRankIdAndCallsignReservedFromUuid(uuid);
         if(idRankIdCallsignReserved == null) return;
-        if(idRankIdCallsignReserved.getRight().getLeft() != 0) {
-            String queryString;
-            if(idRankIdCallsignReserved.getRight().getRight())
-                queryString = """
-                        UPDATE players
-                        SET status=1, password=NULL, token=NULL
-                        WHERE id=?;""";
-            else
-                queryString = """
-                        UPDATE players
-                        SET status=1, callsign=NULL, password=NULL, token=NULL
-                        WHERE id=?;""";
-            PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement(queryString);
-            preparedStatement.setInt(1, idRankIdCallsignReserved.getLeft());
-            preparedStatement.execute();
-            preparedStatement.close();
+        if(idRankIdCallsignReserved.get(Players.rankId) != 0) {
+            UpdateSetMoreStep<PlayersRecord> query = context.update(Players)
+                    .set(Players.status, 1)
+                    .set(Players.password, DSL.value(null, Players.password))
+                    .set(Players.token, DSL.value(null, Players.token));
+            if(!idRankIdCallsignReserved.get(Players.callsignReserved))
+                query = query.set(Players.callsign, DSL.value(null, Players.callsign));
+            query.where(Players.id.eq(idRankIdCallsignReserved.get(Players.id)))
+                    .execute();
+
         }
     }
 
-    public static void handleShutdown() throws SQLException {
-        Statement statement = RupyberDatabaseAPI.connection.createStatement();
-        statement.execute("""
-                UPDATE players
-                SET online=FALSE, password=NULL, token=NULL;""");
-        statement.execute("""
-                UPDATE players
-                SET callsign=NULL
-                WHERE callsignReserved=FALSE;""");
-        statement.close();
+    public static void handleShutdown() {
+        context.update(Players)
+                .set(Players.online, false)
+                .set(Players.password, DSL.value(null, Players.password))
+                .set(Players.token, DSL.value(null, Players.token))
+                .execute();
+        context.update(Players)
+                .set(Players.callsign, DSL.value(null, Players.token))
+                .where(Players.callsignReserved.eq(false))
+                .execute();
     }
 }

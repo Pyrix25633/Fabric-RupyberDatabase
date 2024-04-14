@@ -4,6 +4,9 @@ import net.fabricmc.api.ModInitializer;
 
 import net.rupyber_studios.rupyber_database_api.config.PoliceTerminalConfig;
 import net.rupyber_studios.rupyber_database_api.table.*;
+import org.jooq.DSLContext;
+import org.jooq.SQLDialect;
+import org.jooq.impl.DSL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,6 +19,7 @@ public class RupyberDatabaseAPI implements ModInitializer {
 	public static final Logger LOGGER = LoggerFactory.getLogger("rupyber_database");
 
 	public static Connection connection;
+	public static DSLContext context;
 	public static PoliceTerminalConfig policeTerminalConfig = null;
 
 	@Override
@@ -31,6 +35,7 @@ public class RupyberDatabaseAPI implements ModInitializer {
 		try {
 			if(connection == null || connection.isClosed()) {
 				connection = DriverManager.getConnection("jdbc:sqlite:" + worldPath + "rupyber.db");
+				context = DSL.using(connection, SQLDialect.SQLITE);
 				LOGGER.info("Connected to database");
 			}
 			else {
@@ -63,6 +68,7 @@ public class RupyberDatabaseAPI implements ModInitializer {
 			else {
 				connection.close();
 				connection = null;
+				context = null;
 				LOGGER.info("Disconnected from database");
 			}
 		} catch(SQLException e) {
@@ -72,41 +78,26 @@ public class RupyberDatabaseAPI implements ModInitializer {
 	}
 
 	public static void createPoliceTerminalTables() {
-		try {
-			Rank.createTable();
-			Player.createTable();
-			EmergencyCallNumber.createTable();
-			EmergencyCall.createTable();
-			ResponseCode.createTable();
-			IncidentType.createTable();
-			IncidentNumber.createTable();
-			Incident.createTable();
-			IncidentPlayer.createTable();
-		} catch (SQLException e) {
-			LOGGER.error("Error while creating Police Terminal tables: ", e);
-			throw new IllegalStateException("Unable to create Police Terminal tables");
-		}
+		Rank.createTable();
+		Player.createTable();
+		EmergencyCallNumber.createTable();
+		EmergencyCall.createTable();
+		ResponseCode.createTable();
+		IncidentType.createTable();
+		IncidentNumber.createTable();
+		Incident.createTable();
+		IncidentPlayer.createTable();
 	}
 
 	public static void updatePoliceTerminalTablesFromConfig() {
 		PoliceTerminalConfig config = policeTerminalConfig;
-		try {
-			Rank.updateTableFromConfig(config);
-			ResponseCode.updateTableFromConfig(config);
-			IncidentType.updateTableFromConfig(config);
-		} catch(SQLException e) {
-			LOGGER.error("Error while updating Police Terminal tables: ", e);
-			throw new IllegalStateException("Unable to update Police Terminal tables");
-		}
+		Rank.updateTableFromConfig(config);
+		ResponseCode.updateTableFromConfig(config);
+		IncidentType.updateTableFromConfig(config);
 	}
 
 	public static void handlePoliceTerminalShutdown() {
-		try {
-			Player.handleShutdown();
-		} catch(SQLException e) {
-			LOGGER.error("Error while handling Police Terminal shutdown: ", e);
-			throw new IllegalStateException("Unable to handle Police Terminal shutdown");
-		}
+		Player.handleShutdown();
 	}
 
 	public static void createMinebuckCurrencyTables() {

@@ -4,14 +4,15 @@ import me.shedaniel.autoconfig.annotation.ConfigEntry;
 import net.rupyber_studios.rupyber_database_api.RupyberDatabaseAPI;
 import net.rupyber_studios.rupyber_database_api.config.PoliceTerminalConfig;
 import org.jetbrains.annotations.NotNull;
+import org.jooq.Record1;
+import org.jooq.Result;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+
+import static net.rupyber_studios.rupyber_database_api.RupyberDatabaseAPI.context;
+import static net.rupyber_studios.rupyber_database_api.jooq.Tables.*;
 
 public class Rank {
     @ConfigEntry.Gui.Excluded
@@ -32,70 +33,48 @@ public class Rank {
         this.color = color;
     }
 
-    public static void createTable() throws SQLException {
-        Statement statement = RupyberDatabaseAPI.connection.createStatement();
-        statement.execute("""
-                CREATE TABLE IF NOT EXISTS ranks (
-                    id INT,
-                    rank VARCHAR(32) NOT NULL,
-                    color INT NOT NULL,
-                    emergencyOperator BOOLEAN NOT NULL,
-                    PRIMARY KEY (id),
-                    UNIQUE (rank)
-                );""");
-        statement.close();
+    public static void createTable() {
+        context.createTableIfNotExists(Ranks).execute();
     }
 
-    public static void updateTableFromConfig(PoliceTerminalConfig config) throws SQLException {
-        List<Integer> missingRankIds = selectMissingRankIdsFromTable(config);
+    public static void updateTableFromConfig(PoliceTerminalConfig config) {
+        Result<Record1<Integer>> missingRankIds = selectMissingRankIdsFromTable(config);
         replaceIntoTable(config);
         Player.updateTableWithNewRankIds(config, missingRankIds);
         deleteMissingRankIdsFromTable(missingRankIds);
     }
 
-    private static @NotNull List<Integer> selectMissingRankIdsFromTable(@NotNull PoliceTerminalConfig config)
-            throws SQLException {
-        Statement statement = RupyberDatabaseAPI.connection.createStatement();
-        StringBuilder query = new StringBuilder("SELECT id FROM ranks WHERE id NOT IN (");
+    private static @NotNull Result<Record1<Integer>> selectMissingRankIdsFromTable(@NotNull PoliceTerminalConfig config) {
+        List<Integer> rankIds = new ArrayList<>();
+        for(Rank rank : config.ranks)
+            rankIds.add(rank.id);
 
-        int size = config.ranks.size();
-        for(int i = 0; i < size - 1; i++)
-            query.append(config.ranks.get(i).id).append(", ");
-        query.append(config.ranks.get(size - 1).id).append(");");
-
-        ResultSet result = statement.executeQuery(query.toString());
-        ArrayList<Integer> missingRankIds = new ArrayList<>();
-        while(result.next())
-            missingRankIds.add(result.getInt("id"));
-        statement.close();
-
-        return missingRankIds;
+        return context.select(Ranks.id)
+                .from(Ranks)
+                .where(Ranks.id.notIn(rankIds))
+                .fetch();
     }
 
-    private static void replaceIntoTable(@NotNull PoliceTerminalConfig config) throws SQLException {
-        PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
-                REPLACE INTO ranks
-                (id, rank, emergencyOperator, color)
-                VALUES (?, ?, ?, ?);""");
+    private static void replaceIntoTable(@NotNull PoliceTerminalConfig config) {
         for(Rank rank : config.ranks) {
-            preparedStatement.setInt(1, rank.id);
-            preparedStatement.setString(2, rank.rank);
-            preparedStatement.setBoolean(3, rank.emergencyOperator);
-            preparedStatement.setInt(4, rank.color);
-            preparedStatement.execute();
+            context.insertInto(Ranks)
+                    .set(Ranks.id, rank.id)
+                    .set(Ranks.rank, rank.rank)
+                    .set(Ranks.emergencyOperator, rank.emergencyOperator)
+                    .set(Ranks.color, rank.color)
+                    .onDuplicateKeyUpdate()
+                    .set(Ranks.rank, rank.rank).set(Ranks.emergencyOperator, rank.emergencyOperator)
+                    .set(Ranks.color, rank.color)
+                    .execute();
         }
-        preparedStatement.close();
     }
 
-    private static void deleteMissingRankIdsFromTable(@NotNull List<Integer> missingRankIds) throws SQLException {
-        PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
-                DELETE FROM ranks
-                WHERE id=?;""");
-        for(int rankId : missingRankIds) {
-            preparedStatement.setInt(1, rankId);
-            preparedStatement.execute();
+    private static void deleteMissingRankIdsFromTable(@NotNull Result<Record1<Integer>> missingRankIds) {
+        for(Record1<Integer> rankId : missingRankIds) {
+            context.deleteFrom(Ranks)
+                    .where(Ranks.id.eq(rankId.value1()))
+                    .execute();
         }
-        preparedStatement.close();
     }
 
     public static void loadRanks() {

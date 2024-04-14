@@ -4,16 +4,17 @@ import net.rupyber_studios.rupyber_database_api.RupyberDatabaseAPI;
 import net.rupyber_studios.rupyber_database_api.config.PoliceTerminalConfig;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Unmodifiable;
+import org.jooq.Record1;
+import org.jooq.Result;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static net.rupyber_studios.rupyber_database_api.RupyberDatabaseAPI.context;
+import static net.rupyber_studios.rupyber_database_api.jooq.Tables.*;
 
 public class Callsign {
     private static final Random RANDOM = new Random();
@@ -21,20 +22,18 @@ public class Callsign {
     private static final Pattern BEAT_UNIT_PATTERN = Pattern.compile("^(\\d+)-(\\w+)$");
     private static final Pattern UNIT_BEAT_PATTERN = Pattern.compile("^(\\w+)-(\\d+)$");
 
-    public static @NotNull @Unmodifiable List<String> selectAll() throws SQLException {
+    public static @NotNull @Unmodifiable List<String> selectAll() {
+        Result<Record1<String>> result = context.select(Players.callsign)
+                .from(Players)
+                .where(Players.callsign.isNotNull())
+                .fetch();
         List<String> callsigns = new ArrayList<>();
-        Statement statement = RupyberDatabaseAPI.connection.createStatement();
-        ResultSet result = statement.executeQuery("""
-                SELECT callsign
-                FROM players
-                WHERE callsign IS NOT NULL;""");
-        while (result.next())
-            callsigns.add(result.getString("callsign"));
-        statement.close();
+        for(Record1<String> record : result)
+            callsigns.add(record.value1());
         return callsigns;
     }
 
-    public static String createUnusedCallsign() throws SQLException {
+    public static String createUnusedCallsign() {
         String callsign;
         do {
             callsign = createRandomCallsign();
@@ -42,7 +41,7 @@ public class Callsign {
         return callsign;
     }
 
-    public static String createRandomCallsign() {
+    public static @NotNull String createRandomCallsign() {
         PoliceTerminalConfig config = RupyberDatabaseAPI.policeTerminalConfig;
         ArrayList<String> types = new ArrayList<>();
         if(config.callsignBeatUnit) types.add("B-U");
@@ -52,21 +51,16 @@ public class Callsign {
         int area = RANDOM.nextInt(config.callsignAreaMin, config.callsignAreaMax + 1);
         short unitIndex = (short)(RANDOM.nextInt(0, config.callsignUnits.size()));
         int beat = RANDOM.nextInt(config.callsignBeatMin, config.callsignBeatMax + 1);
-        return switch(types.get(index)) {
-            case "B-U" -> beat + "-" + config.callsignUnits.get(unitIndex);
-            case "U-B" -> config.callsignUnits.get(unitIndex) + "-" + beat;
-            default -> area + "-" + config.callsignUnits.get(unitIndex) + "-" + beat;
-        };
+        return types.get(index)
+                .replace("A", String.valueOf(area))
+                .replace("U", config.callsignUnits.get(unitIndex))
+                .replace("B", String.valueOf(beat));
     }
 
-    public static boolean isInUse(String callsign) throws SQLException {
-        PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
-                SELECT uuid
-                FROM players
-                WHERE callsign=?;""");
-        preparedStatement.setString(1, callsign);
-        ResultSet result = preparedStatement.executeQuery();
-        return result.next();
+    public static boolean isInUse(String callsign) {
+        return context.select(Players.uuid)
+                .from(Players)
+                .where(Players.callsign.eq(callsign)).fetchOne() != null;
     }
 
     public static boolean isValid(String callsign) {

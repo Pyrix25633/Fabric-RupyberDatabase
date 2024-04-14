@@ -1,43 +1,31 @@
 package net.rupyber_studios.rupyber_database_api.util;
 
-import net.rupyber_studios.rupyber_database_api.RupyberDatabaseAPI;
 import org.jetbrains.annotations.NotNull;
+import org.jooq.*;
+import org.jooq.Record;
+import org.jooq.impl.DSL;
 import org.json.JSONArray;
-import org.json.JSONObject;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import static net.rupyber_studios.rupyber_database_api.RupyberDatabaseAPI.context;
+import static net.rupyber_studios.rupyber_database_api.RupyberDatabaseAPI.policeTerminalConfig;
+import static net.rupyber_studios.rupyber_database_api.jooq.Tables.*;
 
 public interface Citizen {
-    static int selectNumberOfCitizenPages() throws SQLException {
-        Statement statement = RupyberDatabaseAPI.connection.createStatement();
-        ResultSet result = statement.executeQuery("""
-                SELECT COUNT(*) AS records FROM players;""");
-        return (int)Math.ceil((double)result.getInt("records") / RupyberDatabaseAPI.policeTerminalConfig.recordsPerPage);
+    static int selectNumberOfCitizenPages() {
+        Field<Integer> count = DSL.count().as("records");
+        int records = context.select(count).from(Players).fetchSingle().get(count);
+        return (int)Math.ceil((double)records / policeTerminalConfig.recordsPerPage);
     }
 
-    static @NotNull JSONArray selectCitizens(int page, String orderField, boolean orderAscending) throws SQLException {
-        PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
-                SELECT uuid, username, online
-                FROM players
-                ORDER BY #1 #2
-                LIMIT ?, ?;"""
-                .replace("#1", orderField)
-                .replace("#2", orderAscending ? "ASC" : "DESC"));
-        preparedStatement.setInt(1, page * RupyberDatabaseAPI.policeTerminalConfig.recordsPerPage);
-        preparedStatement.setInt(2, RupyberDatabaseAPI.policeTerminalConfig.recordsPerPage);
-        ResultSet result = preparedStatement.executeQuery();
-        JSONArray citizens = new JSONArray();
-        while(result.next()) {
-            JSONObject citizen = new JSONObject();
-            citizen.put("uuid", result.getString("uuid"));
-            citizen.put("username", result.getString("username"));
-            citizen.put("online", result.getBoolean("online"));
-            citizens.put(citizen);
-        }
-        preparedStatement.close();
-        return citizens;
+    static @NotNull JSONArray selectCitizens(int page, String orderField, boolean orderAscending) {
+        Result<Record3<String, String, Boolean>> results = context.select(Players.uuid, Players.username, Players.online)
+                .from(Players)
+                .orderBy(DSL.field(orderField).sort(orderAscending ? SortOrder.ASC : SortOrder.DESC))
+                .limit(page * policeTerminalConfig.recordsPerPage, policeTerminalConfig.recordsPerPage)
+                .fetch();
+        JSONArray emergencyCalls = new JSONArray();
+        for(Record3<String, String, Boolean> record : results)
+            emergencyCalls.put(record.intoMap());
+        return emergencyCalls;
     }
 }

@@ -1,51 +1,22 @@
 package net.rupyber_studios.rupyber_database_api.table;
 
-import net.rupyber_studios.rupyber_database_api.RupyberDatabaseAPI;
 import net.rupyber_studios.rupyber_database_api.config.PoliceTerminalConfig;
 import org.jetbrains.annotations.NotNull;
+import org.jooq.Record1;
+import org.jooq.Result;
 
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.List;
+import static net.rupyber_studios.rupyber_database_api.RupyberDatabaseAPI.context;
+import static net.rupyber_studios.rupyber_database_api.jooq.Tables.*;
 
 public class Incident {
-    public static void createTable() throws SQLException {
-        Statement statement = RupyberDatabaseAPI.connection.createStatement();
-        statement.execute("""
-                CREATE TABLE IF NOT EXISTS incidents (
-                    id INTEGER PRIMARY KEY,
-                    incidentNumber INT NOT NULL,
-                    emergencyCallId INT NULL DEFAULT NULL,
-                    priority INT NOT NULL,
-                    responseCodeId INT NOT NULL,
-                    recipients INT NOT NULL,
-                    incidentTypeId INT NOT NULL,
-                    locationX INT NOT NULL,
-                    locationY INT NOT NULL,
-                    locationZ INT NOT NULL,
-                    description VARCHAR(128) NULL,
-                    createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    createdBy INT NOT NULL,
-                    closedAt DATETIME NULL DEFAULT NULL,
-                    closedBy INT NULL DEFAULT NULL,
-                    FOREIGN KEY (emergencyCallId) REFERENCES emergencyCalls(id),
-                    FOREIGN KEY (responseCodeId) REFERENCES responseCodes(id),
-                    FOREIGN KEY (incidentTypeId) REFERENCES incidentTypes(id),
-                    FOREIGN KEY (createdBy) REFERENCES players(id),
-                    FOREIGN KEY (closedBy) REFERENCES players(id)
-                );""");
-        statement.close();
+    public static void createTable() {
+        context.createTableIfNotExists(Incidents).execute();
     }
 
     public static void updateTableWithNewResponseCodeIds(PoliceTerminalConfig config,
-                                                         @NotNull List<Integer> missingResponseCodeIds)
-            throws SQLException {
-        PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
-                UPDATE incidents
-                SET responseCodeId=?
-                WHERE responseCodeId=?;""");
-        for(int responseCodeId : missingResponseCodeIds) {
+                                                         @NotNull Result<Record1<Integer>> missingResponseCodeIds) {
+        for(Record1<Integer> responseCodeIdRecord : missingResponseCodeIds) {
+            int responseCodeId = responseCodeIdRecord.value1();
             Integer nearestResponseCodeId = 0;
             for(ResponseCode existingResponseCode : config.responseCodes) {
                 if(existingResponseCode.id < responseCodeId &&
@@ -53,21 +24,17 @@ public class Incident {
                     nearestResponseCodeId = existingResponseCode.id;
             }
             if(nearestResponseCodeId == 0) nearestResponseCodeId = null;
-            preparedStatement.setObject(1, nearestResponseCodeId);
-            preparedStatement.setInt(2, responseCodeId);
-            preparedStatement.execute();
+            context.update(Incidents)
+                    .set(Incidents.responseCodeId, nearestResponseCodeId)
+                    .where(Incidents.responseCodeId.eq(responseCodeId))
+                    .execute();
         }
-        preparedStatement.close();
     }
 
     public static void updateTableWithNewIncidentTypeIds(PoliceTerminalConfig config,
-                                                         @NotNull List<Integer> missingIncidentTypeIds)
-            throws SQLException {
-        PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
-                UPDATE incidents
-                SET incidentTypeId=?
-                WHERE incidentTypeId=?;""");
-        for(int incidentTypeId : missingIncidentTypeIds) {
+                                                         @NotNull Result<Record1<Integer>> missingIncidentTypeIds) {
+        for(Record1<Integer> incidentTypeIdRecord : missingIncidentTypeIds) {
+            int incidentTypeId = incidentTypeIdRecord.value1();
             Integer nearestIncidentTypeId = 0;
             for(IncidentType existingIncidentType : config.incidentTypes) {
                 if(existingIncidentType.id < incidentTypeId &&
@@ -75,10 +42,10 @@ public class Incident {
                     nearestIncidentTypeId = existingIncidentType.id;
             }
             if(nearestIncidentTypeId == 0) nearestIncidentTypeId = null;
-            preparedStatement.setObject(1, nearestIncidentTypeId);
-            preparedStatement.setInt(2, incidentTypeId);
-            preparedStatement.execute();
+            context.update(Incidents)
+                    .set(Incidents.incidentTypeId, nearestIncidentTypeId)
+                    .where(Incidents.incidentTypeId.eq(incidentTypeId))
+                    .execute();
         }
-        preparedStatement.close();
     }
 }

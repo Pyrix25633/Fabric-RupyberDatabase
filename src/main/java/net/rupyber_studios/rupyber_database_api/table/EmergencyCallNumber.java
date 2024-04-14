@@ -1,74 +1,59 @@
 package net.rupyber_studios.rupyber_database_api.table;
 
-import net.rupyber_studios.rupyber_database_api.RupyberDatabaseAPI;
+import org.jooq.Record1;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.time.LocalDate;
+
+import static net.rupyber_studios.rupyber_database_api.RupyberDatabaseAPI.context;
+import static net.rupyber_studios.rupyber_database_api.jooq.Tables.*;
 
 public interface EmergencyCallNumber {
     // -------------
     // Handle number
     // -------------
 
-    static int getNewCallNumber(String currentDate) throws SQLException {
+    static int getNewCallNumber(LocalDate currentDate) {
         int number = selectTodayNextUnusedNumber(currentDate);
         updateTodayNextNumber(currentDate, number);
         return number;
     }
 
-    static int selectTodayNextUnusedNumber(String currentDate) throws SQLException {
+    static int selectTodayNextUnusedNumber(LocalDate currentDate) {
         int number = selectTodayNextNumber(currentDate);
-        PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
-                SELECT id
-                FROM emergencyCalls
-                WHERE closed=FALSE AND callNumber=?;""");
-        ResultSet result;
+        Record1<Integer> result;
         do {
             number++;
-            preparedStatement.setInt(1, number);
-            result = preparedStatement.executeQuery();
-        } while(result.next());
-        preparedStatement.close();
+            result = context.select(EmergencyCalls.id)
+                    .from(EmergencyCalls)
+                    .where(EmergencyCalls.closedAt.isNotNull().and(EmergencyCalls.callNumber.eq(number)))
+                    .fetchOne();
+        } while(result != null);
         return number;
     }
 
-    static int selectTodayNextNumber(String currentDate) throws SQLException {
-        PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
-                SELECT number
-                FROM emergencyCallNumbers
-                WHERE day=?;""");
-        preparedStatement.setString(1, currentDate);
-        ResultSet result = preparedStatement.executeQuery();
-        if(result.next()) return result.getInt("number");
-        preparedStatement.close();
+    static int selectTodayNextNumber(LocalDate currentDate) {
+        Record1<Integer> number = context.select(EmergencyCallNumbers.number)
+                .from(EmergencyCallNumbers)
+                .where(EmergencyCallNumbers.day.eq(currentDate))
+                .fetchOne();
+        if(number != null) return number.value1();
         return 1;
     }
 
-    static void updateTodayNextNumber(String currentDate, int number) throws SQLException {
-        PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
-                REPLACE INTO emergencyCallNumbers
-                (day, number)
-                VALUES (?, ?);""");
-        preparedStatement.setString(1, currentDate);
-        preparedStatement.setInt(2, number);
-        preparedStatement.execute();
-        preparedStatement.close();
+    static void updateTodayNextNumber(LocalDate currentDate, int number) {
+        context.insertInto(EmergencyCallNumbers)
+                .set(EmergencyCallNumbers.day, currentDate)
+                .set(EmergencyCallNumbers.number, number)
+                .onDuplicateKeyUpdate()
+                .set(EmergencyCallNumbers.number, number)
+                .execute();
     }
 
     // -------
     // Startup
     // -------
 
-    static void createTable() throws SQLException {
-        Statement statement = RupyberDatabaseAPI.connection.createStatement();
-        statement.execute("""
-                CREATE TABLE IF NOT EXISTS emergencyCallNumbers (
-                    day DATE,
-                    number INT NOT NULL,
-                    PRIMARY KEY (day)
-                );""");
-        statement.close();
+    static void createTable() {
+        context.createTableIfNotExists(EmergencyCallNumbers).execute();
     }
 }

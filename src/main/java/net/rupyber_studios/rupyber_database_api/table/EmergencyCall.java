@@ -2,38 +2,44 @@ package net.rupyber_studios.rupyber_database_api.table;
 
 import net.minecraft.util.math.Vec3d;
 import net.rupyber_studios.rupyber_database_api.RupyberDatabaseAPI;
+import net.rupyber_studios.rupyber_database_api.jooq.tables.PlayersTable;
+import net.rupyber_studios.rupyber_database_api.jooq.tables.records.EmergencyCallsRecord;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jooq.*;
+import org.jooq.Record;
+import org.jooq.impl.DSL;
 import org.json.JSONArray;
-import org.json.JSONObject;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.Date;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+
+import static net.rupyber_studios.rupyber_database_api.RupyberDatabaseAPI.context;
+import static net.rupyber_studios.rupyber_database_api.RupyberDatabaseAPI.policeTerminalConfig;
+import static net.rupyber_studios.rupyber_database_api.jooq.Tables.*;
 
 public class EmergencyCall {
     public int id;
     public int callNumber;
     public Vec3d location;
-    public String createdAt;
+    public LocalDateTime createdAt;
     public int callerId;
     public int responderId;
-    public boolean closed;
+    public LocalDateTime closedAt;
     public String description;
 
-    public EmergencyCall(int id, int callNumber, Vec3d location, String createdAt, int callerId, int responderId,
-                         boolean closed, String description) {
+    public EmergencyCall(int id, int callNumber, Vec3d location, LocalDateTime createdAt, int callerId, int responderId,
+                         LocalDateTime closedAt, String description) {
         this.id = id;
         this.callNumber = callNumber;
         this.location = location;
         this.createdAt = createdAt;
         this.callerId = callerId;
         this.responderId = responderId;
-        this.closed = closed;
+        this.closedAt = closedAt;
         this.description = description;
     }
 
@@ -41,73 +47,59 @@ public class EmergencyCall {
     // Select
     // ------
 
-    public static @Nullable EmergencyCall selectFromCallNumber(int callNumber) throws SQLException {
-        PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
-                SELECT *
-                FROM emergencyCalls
-                WHERE callNumber=? AND closed=FALSE;""");
-        preparedStatement.setInt(1, callNumber);
-        ResultSet result = preparedStatement.executeQuery();
-        if(result.next()) return new EmergencyCall(result.getInt("id"), callNumber,
-                new Vec3d(result.getInt("locationX"), result.getInt("locationY"), result.getInt("locationZ")),
-                result.getString("createdAt"), result.getInt("callerId"), result.getInt("responderId"),
-                result.getBoolean("closed"), result.getString("description"));
-        preparedStatement.close();
-        return null;
+    public static @Nullable EmergencyCall selectWhereCallNumber(int callNumber) {
+        Record result = context.select()
+                .from(EmergencyCalls)
+                .where(EmergencyCalls.callNumber.eq(callNumber).and(EmergencyCalls.closedAt.isNull()))
+                .fetchOne();
+        if(result == null) return null;
+        return new EmergencyCall(
+                result.get(EmergencyCalls.id),
+                callNumber,
+                new Vec3d(result.get(EmergencyCalls.locationX), result.get(EmergencyCalls.locationY),
+                        result.get(EmergencyCalls.locationZ)),
+                result.get(EmergencyCalls.createdAt),
+                result.get(EmergencyCalls.callerId),
+                result.get(EmergencyCalls.responderId),
+                result.get(EmergencyCalls.closedAt),
+                result.get(EmergencyCalls.description)
+        );
     }
 
-    public static @NotNull List<Integer> selectCallNumberWhereClosedFalse() throws SQLException {
-        Statement statement = RupyberDatabaseAPI.connection.createStatement();
-        ResultSet result = statement.executeQuery("""
-                SELECT callNumber
-                FROM emergencyCalls
-                WHERE closed=FALSE;""");
-        List<Integer> callNumbers = new ArrayList<>();
-        while(result.next()) {
-            callNumbers.add(result.getInt("callNumber"));
-        }
-        statement.close();
-        return callNumbers;
+    public static @NotNull List<Integer> selectCallNumberWhereClosedFalse() {
+        Result<Record1<Integer>> result = context.select(EmergencyCalls.callNumber)
+                .from(EmergencyCalls)
+                .where(EmergencyCalls.closedAt.isNull()).fetch();
+        List<Integer> numbers = new ArrayList<>();
+        for(Record1<Integer> record : result)
+            numbers.add(record.get(EmergencyCalls.callNumber));
+        return numbers;
     }
 
-    public static int selectNumberOfEmergencyCallPages() throws SQLException {
-        Statement statement = RupyberDatabaseAPI.connection.createStatement();
-        ResultSet result = statement.executeQuery("""
-                SELECT COUNT(*) AS records FROM emergencyCalls;""");
-        return (int)Math.ceil((double)result.getInt("records") / RupyberDatabaseAPI.policeTerminalConfig.recordsPerPage);
+    public static int selectNumberOfEmergencyCallPages() {
+        Field<Integer> count = DSL.count().as("records");
+        int records = context.select(count).from(EmergencyCalls).fetchSingle().get(count);
+        return (int)Math.ceil((double)records / policeTerminalConfig.recordsPerPage);
     }
 
-    public static @NotNull JSONArray selectEmergencyCalls(int page, String orderField, boolean orderAscending)
-            throws SQLException {
-        PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
-                SELECT callNumber, locationX, locationY, locationZ, createdAt,
-                    c.username as caller, r.username as responder, closed
-                FROM emergencyCalls AS e
-                INNER JOIN players AS c
-                ON e.callerId=c.id
-                INNER JOIN players AS r
-                ON e.responderId=r.id
-                ORDER BY #1 #2
-                LIMIT ?, ?;"""
-                .replace("#1", orderField)
-                .replace("#2", orderAscending ? "ASC" : "DESC"));
-        preparedStatement.setInt(1, page * RupyberDatabaseAPI.policeTerminalConfig.recordsPerPage);
-        preparedStatement.setInt(2, RupyberDatabaseAPI.policeTerminalConfig.recordsPerPage);
-        ResultSet result = preparedStatement.executeQuery();
+    public static @NotNull JSONArray selectEmergencyCalls(int page, String orderField, boolean orderAscending) {
+        PlayersTable c = Players.as("c");
+        PlayersTable r = Players.as("r");
+        Field<String> caller = c.username.as("caller");
+        Field<String> responder = c.username.as("responder");
+        Result<Record3<EmergencyCallsRecord, String, String>> results = context.select(
+                        EmergencyCalls, caller, responder)
+                .from(EmergencyCalls)
+                .innerJoin(c)
+                .on(EmergencyCalls.callerId.eq(c.id))
+                .innerJoin(r)
+                .on(EmergencyCalls.callerId.eq(r.id))
+                .orderBy(DSL.field(orderField).sort(orderAscending ? SortOrder.ASC : SortOrder.DESC))
+                .limit(page * policeTerminalConfig.recordsPerPage, policeTerminalConfig.recordsPerPage)
+                .fetch();
         JSONArray emergencyCalls = new JSONArray();
-        while(result.next()) {
-            JSONObject emergencyCall = new JSONObject();
-            emergencyCall.put("callNumber", result.getInt("callNumber"));
-            emergencyCall.put("locationX", result.getInt("locationX"));
-            emergencyCall.put("locationY", result.getInt("locationY"));
-            emergencyCall.put("locationZ", result.getInt("locationZ"));
-            emergencyCall.put("createdAt", result.getString("createdAt"));
-            emergencyCall.put("caller", result.getString("caller"));
-            emergencyCall.put("responder", result.getString("responder"));
-            emergencyCall.put("closed", result.getBoolean("closed"));
-            emergencyCalls.put(emergencyCall);
-        }
-        preparedStatement.close();
+        for(Record record : results)
+            emergencyCalls.put(record.intoMap());
         return emergencyCalls;
     }
 
@@ -115,14 +107,11 @@ public class EmergencyCall {
     // Update
     // ------
 
-    public static void updateClosedTrue(int id) throws SQLException {
-        PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
-                UPDATE emergencyCalls
-                SET closed=TRUE
-                WHERE id=?;""");
-        preparedStatement.setInt(1, id);
-        preparedStatement.execute();
-        preparedStatement.close();
+    public static void updateClosedTrue(int id) {
+        context.update(EmergencyCalls)
+                .set(EmergencyCalls.closedAt, context.select(DSL.currentLocalDateTime()))
+                .where(EmergencyCalls.id.eq(id))
+                .execute();
     }
 
     // ------
@@ -130,25 +119,20 @@ public class EmergencyCall {
     // ------
 
     public static int insertAndReturnCallNumber(@NotNull UUID callerUuid, @NotNull UUID responderUuid,
-                                                @NotNull Vec3d pos, String description) throws SQLException {
-        Statement statement = RupyberDatabaseAPI.connection.createStatement();
-        ResultSet result = statement.executeQuery("""
-                SELECT CURRENT_DATE;""");
-        String currentDate = result.getString("CURRENT_DATE");
-        int number = EmergencyCallNumber.getNewCallNumber(currentDate);
-        PreparedStatement preparedStatement = RupyberDatabaseAPI.connection.prepareStatement("""
-                INSERT INTO emergencyCalls
-                (callNumber, locationX, locationY, locationZ, callerId, responderId, description)
-                VALUES (?, ?, ?, ?, (SELECT id FROM players WHERE uuid=?), (SELECT id FROM players WHERE uuid=?), ?);""");
-        preparedStatement.setInt(1, number);
-        preparedStatement.setInt(2, (int)pos.x);
-        preparedStatement.setInt(3, (int)pos.y);
-        preparedStatement.setInt(4, (int)pos.z);
-        preparedStatement.setString(5, callerUuid.toString());
-        preparedStatement.setString(6, responderUuid.toString());
-        preparedStatement.setString(7, description);
-        preparedStatement.execute();
-        preparedStatement.close();
+                                                @NotNull Vec3d pos, String description) {
+        Record1<Date> currentDate = context.select(DSL.currentDate()).fetchSingle();
+        int number = EmergencyCallNumber.getNewCallNumber(currentDate.value1().toLocalDate());
+        context.insertInto(EmergencyCalls)
+                .set(EmergencyCalls.callNumber, number)
+                .set(EmergencyCalls.locationX, (int)pos.x)
+                .set(EmergencyCalls.locationY, (int)pos.y)
+                .set(EmergencyCalls.locationZ, (int)pos.z)
+                .set(EmergencyCalls.callerId,
+                        context.select(Players.id).from(Players).where(Players.uuid.eq(callerUuid.toString())))
+                .set(EmergencyCalls.responderId,
+                        context.select(Players.id).from(Players).where(Players.uuid.eq(responderUuid.toString())))
+                .set(EmergencyCalls.description, description)
+                .execute();
         return number;
     }
 
@@ -156,22 +140,7 @@ public class EmergencyCall {
     // Startup
     // -------
 
-    public static void createTable() throws SQLException {
-        Statement statement = RupyberDatabaseAPI.connection.createStatement();
-        statement.execute("""
-                CREATE TABLE IF NOT EXISTS emergencyCalls (
-                    id INTEGER PRIMARY KEY,
-                    callNumber INT NOT NULL,
-                    locationX INT NOT NULL,
-                    locationY INT NOT NULL,
-                    locationZ INT NOT NULL,
-                    createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    callerId INT NOT NULL,
-                    responderId INT NOT NULL,
-                    closed BOOLEAN NOT NULL DEFAULT FALSE,
-                    description VARCHAR(256),
-                    FOREIGN KEY (callerId) REFERENCES players(id)
-                );""");
-        statement.close();
+    public static void createTable() {
+        RupyberDatabaseAPI.context.createTableIfNotExists(EmergencyCalls).execute();
     }
 }

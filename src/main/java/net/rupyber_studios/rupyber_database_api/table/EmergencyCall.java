@@ -1,9 +1,7 @@
 package net.rupyber_studios.rupyber_database_api.table;
 
 import net.minecraft.util.math.Vec3d;
-import net.rupyber_studios.rupyber_database_api.RupyberDatabaseAPI;
 import net.rupyber_studios.rupyber_database_api.jooq.tables.PlayersTable;
-import net.rupyber_studios.rupyber_database_api.jooq.tables.records.EmergencyCallsRecord;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jooq.*;
@@ -87,8 +85,10 @@ public class EmergencyCall {
         PlayersTable r = Players.as("r");
         Field<String> caller = c.username.as("caller");
         Field<String> responder = c.username.as("responder");
-        Result<Record3<EmergencyCallsRecord, String, String>> results = context.select(
-                        EmergencyCalls, caller, responder)
+        Result<Record9<Integer, Integer, Integer, Integer, Integer, String, String, String, String>> results = context.select(
+                        EmergencyCalls.id, EmergencyCalls.callNumber, EmergencyCalls.locationX, EmergencyCalls.locationY,
+                        EmergencyCalls.locationZ, EmergencyCalls.createdAt.cast(DSL.value(String.class)), caller, responder,
+                        EmergencyCalls.closedAt.cast(DSL.value(String.class)))
                 .from(EmergencyCalls)
                 .innerJoin(c)
                 .on(EmergencyCalls.callerId.eq(c.id))
@@ -98,7 +98,7 @@ public class EmergencyCall {
                 .limit(page * policeTerminalConfig.recordsPerPage, policeTerminalConfig.recordsPerPage)
                 .fetch();
         JSONArray emergencyCalls = new JSONArray();
-        for(Record record : results)
+        for(Record9<Integer, Integer, Integer, Integer, Integer, String, String, String, String> record : results)
             emergencyCalls.put(record.intoMap());
         return emergencyCalls;
     }
@@ -141,6 +141,7 @@ public class EmergencyCall {
     // -------
 
     public static void createTable() {
-        RupyberDatabaseAPI.context.createTableIfNotExists(EmergencyCalls).execute();
+        if(!context.meta().getTables().contains(EmergencyCalls))
+            context.ddl(EmergencyCalls).executeBatch();
     }
 }

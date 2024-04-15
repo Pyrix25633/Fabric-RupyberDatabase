@@ -7,6 +7,9 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static net.rupyber_studios.rupyber_database_api.RupyberDatabaseAPI.context;
+import static net.rupyber_studios.rupyber_database_api.jooq.Tables.Statuses;
+
 public enum Status implements StringIdentifiable {
     OUT_OF_SERVICE, AVAILABLE, ON_PATROL, BUSY, EN_ROUTE, ON_SCENE, EMERGENCY;
 
@@ -32,7 +35,7 @@ public enum Status implements StringIdentifiable {
 
     public @NotNull Pair<String, Integer> getData() {
         return switch(this) {
-            case OUT_OF_SERVICE -> new Pair<>("Out Of Service", 0xFFFF55);
+            case OUT_OF_SERVICE -> new Pair<>("Out of Service", 0xFFFF55);
             case AVAILABLE -> new Pair<>("Available", 0x55FF55);
             case ON_PATROL -> new Pair<>("On Patrol", 0x00AA00);
             case BUSY -> new Pair<>("Busy", 0xFFAA00);
@@ -40,5 +43,21 @@ public enum Status implements StringIdentifiable {
             case ON_SCENE -> new Pair<>("On Scene", 0x00AAAA);
             case EMERGENCY -> new Pair<>("Emergency", 0xAA0000);
         };
+    }
+
+    // -------
+    // Startup
+    // -------
+
+    public static void createTable() {
+        if(!context.meta().getTables().contains(Statuses))
+            context.ddl(Statuses).executeBatch();
+        for(Status status : values()) {
+            Pair<String, Integer> data = status.getData();
+            context.insertInto(Statuses)
+                    .values(status.getId(), data.getLeft(), data.getRight())
+                    .onDuplicateKeyIgnore()
+                    .execute();
+        }
     }
 }

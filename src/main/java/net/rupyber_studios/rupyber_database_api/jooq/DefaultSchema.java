@@ -14,8 +14,13 @@ import net.rupyber_studios.rupyber_database_api.jooq.tables.IncidentPlayersTable
 import net.rupyber_studios.rupyber_database_api.jooq.tables.IncidentTypesTable;
 import net.rupyber_studios.rupyber_database_api.jooq.tables.IncidentsTable;
 import net.rupyber_studios.rupyber_database_api.jooq.tables.PlayersTable;
+import net.rupyber_studios.rupyber_database_api.jooq.tables.PrioritiesTable;
 import net.rupyber_studios.rupyber_database_api.jooq.tables.RanksTable;
+import net.rupyber_studios.rupyber_database_api.jooq.tables.RecipientsTable;
 import net.rupyber_studios.rupyber_database_api.jooq.tables.ResponseCodesTable;
+import net.rupyber_studios.rupyber_database_api.jooq.tables.RolesTable;
+import net.rupyber_studios.rupyber_database_api.jooq.tables.StatusLogsTable;
+import net.rupyber_studios.rupyber_database_api.jooq.tables.StatusesTable;
 
 import org.jooq.Catalog;
 import org.jooq.Table;
@@ -71,14 +76,39 @@ public class DefaultSchema extends SchemaImpl {
     public final PlayersTable Players = PlayersTable.Players;
 
     /**
+     * The table <code>Priorities</code>.
+     */
+    public final PrioritiesTable Priorities = PrioritiesTable.Priorities;
+
+    /**
      * The table <code>Ranks</code>.
      */
     public final RanksTable Ranks = RanksTable.Ranks;
 
     /**
+     * The table <code>Recipients</code>.
+     */
+    public final RecipientsTable Recipients = RecipientsTable.Recipients;
+
+    /**
      * The table <code>ResponseCodes</code>.
      */
     public final ResponseCodesTable ResponseCodes = ResponseCodesTable.ResponseCodes;
+
+    /**
+     * The table <code>Roles</code>.
+     */
+    public final RolesTable Roles = RolesTable.Roles;
+
+    /**
+     * The table <code>Statuses</code>.
+     */
+    public final StatusesTable Statuses = StatusesTable.Statuses;
+
+    /**
+     * The table <code>StatusLogs</code>.
+     */
+    public final StatusLogsTable StatusLogs = StatusLogsTable.StatusLogs;
 
     /**
      * No further instances allowed
@@ -103,8 +133,13 @@ public class DefaultSchema extends SchemaImpl {
             IncidentsTable.Incidents,
             IncidentTypesTable.IncidentTypes,
             PlayersTable.Players,
+            PrioritiesTable.Priorities,
             RanksTable.Ranks,
-            ResponseCodesTable.ResponseCodes
+            RecipientsTable.Recipients,
+            ResponseCodesTable.ResponseCodes,
+            RolesTable.Roles,
+            StatusesTable.Statuses,
+            StatusLogsTable.StatusLogs
         );
     }
 }

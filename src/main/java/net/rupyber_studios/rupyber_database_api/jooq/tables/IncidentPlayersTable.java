@@ -13,6 +13,7 @@ import net.rupyber_studios.rupyber_database_api.jooq.DefaultSchema;
 import net.rupyber_studios.rupyber_database_api.jooq.Keys;
 import net.rupyber_studios.rupyber_database_api.jooq.tables.IncidentsTable.Incidents;
 import net.rupyber_studios.rupyber_database_api.jooq.tables.PlayersTable.Players;
+import net.rupyber_studios.rupyber_database_api.jooq.tables.RolesTable.Roles;
 import net.rupyber_studios.rupyber_database_api.jooq.tables.records.IncidentPlayersRecord;
 
 import org.jooq.Condition;
@@ -63,9 +64,9 @@ public class IncidentPlayersTable extends TableImpl<IncidentPlayersRecord> {
     public final TableField<IncidentPlayersRecord, Integer> incidentId = createField(DSL.name("incidentId"), SQLDataType.INTEGER.nullable(false), this, "");
 
     /**
-     * The column <code>IncidentPlayers.role</code>.
+     * The column <code>IncidentPlayers.roleId</code>.
      */
-    public final TableField<IncidentPlayersRecord, Integer> role = createField(DSL.name("role"), SQLDataType.INTEGER.nullable(false), this, "");
+    public final TableField<IncidentPlayersRecord, Integer> roleId = createField(DSL.name("roleId"), SQLDataType.INTEGER.nullable(false), this, "");
 
     /**
      * The column <code>IncidentPlayers.playerId</code>.
@@ -151,7 +152,7 @@ public class IncidentPlayersTable extends TableImpl<IncidentPlayersRecord> {
 
     @Override
     public List<ForeignKey<IncidentPlayersRecord, ?>> getReferences() {
-        return Arrays.asList(Keys.fk_IncidentPlayers_pk_Incidents, Keys.fk_IncidentPlayers_pk_Players);
+        return Arrays.asList(Keys.fk_IncidentPlayers_pk_Incidents, Keys.fk_IncidentPlayers_pk_Roles, Keys.fk_IncidentPlayers_pk_Players);
     }
 
     private transient Incidents _incidents;
@@ -164,6 +165,18 @@ public class IncidentPlayersTable extends TableImpl<IncidentPlayersRecord> {
             _incidents = new Incidents(this, Keys.fk_IncidentPlayers_pk_Incidents, null);
 
         return _incidents;
+    }
+
+    private transient Roles _roles;
+
+    /**
+     * Get the implicit join path to the <code>Roles</code> table.
+     */
+    public Roles roles() {
+        if (_roles == null)
+            _roles = new Roles(this, Keys.fk_IncidentPlayers_pk_Roles, null);
+
+        return _roles;
     }
 
     private transient Players _players;

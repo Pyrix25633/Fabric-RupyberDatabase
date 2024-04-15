@@ -34,7 +34,8 @@ public class Rank {
     }
 
     public static void createTable() {
-        context.createTableIfNotExists(Ranks).execute();
+        if(!context.meta().getTables().contains(Ranks))
+            context.ddl(Ranks).executeBatch();
     }
 
     public static void updateTableFromConfig(PoliceTerminalConfig config) {

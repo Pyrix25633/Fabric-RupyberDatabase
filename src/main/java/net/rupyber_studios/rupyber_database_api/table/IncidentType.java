@@ -33,8 +33,17 @@ public class IncidentType {
         this.description = description;
     }
 
+    public static IncidentType fromId(int id) {
+        return incidentTypes.get(id);
+    }
+
+    // -------
+    // Startup
+    // -------
+
     public static void createTable() {
-        context.createTableIfNotExists(IncidentTypes).execute();
+        if(!context.meta().getTables().contains(IncidentTypes))
+            context.ddl(IncidentTypes).executeBatch();
     }
 
     public static void updateTableFromConfig(PoliceTerminalConfig config) {
@@ -83,9 +92,5 @@ public class IncidentType {
         for(IncidentType incidentType : RupyberDatabaseAPI.policeTerminalConfig.incidentTypes) {
             incidentTypes.put(incidentType.id, incidentType);
         }
-    }
-
-    public static IncidentType fromId(int id) {
-        return incidentTypes.get(id);
     }
 }

@@ -7,6 +7,9 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static net.rupyber_studios.rupyber_database_api.RupyberDatabaseAPI.context;
+import static net.rupyber_studios.rupyber_database_api.jooq.Tables.*;
+
 public enum Priority implements StringIdentifiable {
     LOW, PRIORITY, MAJOR;
 
@@ -36,5 +39,21 @@ public enum Priority implements StringIdentifiable {
             case PRIORITY -> new Pair<>("Priority", 0xFFFF55);
             case MAJOR -> new Pair<>("Major", 0xFF5555);
         };
+    }
+
+    // -------
+    // Startup
+    // -------
+
+    public static void createTable() {
+        if(!context.meta().getTables().contains(Priorities))
+            context.ddl(Priorities).executeBatch();
+        for(Priority priority : values()) {
+            Pair<String, Integer> data = priority.getData();
+            context.insertInto(Priorities)
+                    .values(priority.getId(), data.getLeft(), data.getRight())
+                    .onDuplicateKeyIgnore()
+                    .execute();
+        }
     }
 }

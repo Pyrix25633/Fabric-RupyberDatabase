@@ -12,6 +12,7 @@ public interface IncidentNumber {
     // Startup
     // -------
     static void createTable() {
-        context.createTableIfNotExists(IncidentNumbers).execute();
+        if(!context.meta().getTables().contains(IncidentNumbers))
+            context.ddl(IncidentNumbers).executeBatch();
     }
 }

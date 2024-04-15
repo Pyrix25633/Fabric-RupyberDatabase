@@ -34,16 +34,16 @@ public class IncidentPlayersRecord extends TableRecordImpl<IncidentPlayersRecord
     }
 
     /**
-     * Setter for <code>IncidentPlayers.role</code>.
+     * Setter for <code>IncidentPlayers.roleId</code>.
      */
-    public void setRole(Integer value) {
+    public void setRoleid(Integer value) {
         set(1, value);
     }
 
     /**
-     * Getter for <code>IncidentPlayers.role</code>.
+     * Getter for <code>IncidentPlayers.roleId</code>.
      */
-    public Integer getRole() {
+    public Integer getRoleid() {
         return (Integer) get(1);
     }
 
@@ -103,11 +103,11 @@ public class IncidentPlayersRecord extends TableRecordImpl<IncidentPlayersRecord
     /**
      * Create a detached, initialised IncidentPlayersRecord
      */
-    public IncidentPlayersRecord(Integer incidentid, Integer role, Integer playerid, LocalDateTime addedat, LocalDateTime removedat) {
+    public IncidentPlayersRecord(Integer incidentid, Integer roleid, Integer playerid, LocalDateTime addedat, LocalDateTime removedat) {
         super(IncidentPlayersTable.IncidentPlayers);
 
         setIncidentid(incidentid);
-        setRole(role);
+        setRoleid(roleid);
         setPlayerid(playerid);
         setAddedat(addedat);
         setRemovedat(removedat);

@@ -33,8 +33,17 @@ public class ResponseCode {
         this.description = description;
     }
 
+    public static ResponseCode fromId(int id) {
+        return responseCodes.get(id);
+    }
+
+    // -------
+    // Startup
+    // -------
+
     public static void createTable() {
-        context.createTableIfNotExists(ResponseCodes).execute();
+        if(!context.meta().getTables().contains(ResponseCodes))
+            context.ddl(ResponseCodes).executeBatch();
     }
 
     public static void updateTableFromConfig(PoliceTerminalConfig config) {
@@ -83,9 +92,5 @@ public class ResponseCode {
         for(ResponseCode responseCode : RupyberDatabaseAPI.policeTerminalConfig.responseCodes) {
             responseCodes.put(responseCode.id, responseCode);
         }
-    }
-
-    public static ResponseCode fromId(int id) {
-        return responseCodes.get(id);
     }
 }

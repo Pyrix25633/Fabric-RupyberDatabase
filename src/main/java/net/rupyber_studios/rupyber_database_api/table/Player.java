@@ -3,6 +3,7 @@ package net.rupyber_studios.rupyber_database_api.table;
 import net.rupyber_studios.rupyber_database_api.config.PoliceTerminalConfig;
 import net.rupyber_studios.rupyber_database_api.jooq.tables.records.PlayersRecord;
 import net.rupyber_studios.rupyber_database_api.util.PlayerInfo;
+import net.rupyber_studios.rupyber_database_api.util.Status;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jooq.*;
@@ -138,7 +139,8 @@ public class Player {
     // --------------------
 
     public static void createTable() {
-        context.createTableIfNotExists(Players).execute();
+        if(!context.meta().getTables().contains(Players))
+            context.ddl(Players).executeBatch();
     }
 
     public static void updateTableWithNewRankIds(PoliceTerminalConfig config, @NotNull Result<Record1<Integer>> missingRankIds) {
@@ -160,16 +162,15 @@ public class Player {
     public static void handleDisconnection(@NotNull UUID uuid) {
         Record3<Integer, Integer, Boolean> idRankIdCallsignReserved = selectIdAndRankIdAndCallsignReservedFromUuid(uuid);
         if(idRankIdCallsignReserved == null) return;
-        if(idRankIdCallsignReserved.get(Players.rankId) != 0) {
+        if(idRankIdCallsignReserved.get(Players.rankId) != null) {
             UpdateSetMoreStep<PlayersRecord> query = context.update(Players)
-                    .set(Players.status, 1)
+                    .set(Players.statusId, Status.OUT_OF_SERVICE.getId())
                     .set(Players.password, DSL.value(null, Players.password))
                     .set(Players.token, DSL.value(null, Players.token));
             if(!idRankIdCallsignReserved.get(Players.callsignReserved))
                 query = query.set(Players.callsign, DSL.value(null, Players.callsign));
             query.where(Players.id.eq(idRankIdCallsignReserved.get(Players.id)))
                     .execute();
-
         }
     }
 

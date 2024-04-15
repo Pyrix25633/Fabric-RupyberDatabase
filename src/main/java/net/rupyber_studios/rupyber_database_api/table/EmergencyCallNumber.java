@@ -54,6 +54,7 @@ public interface EmergencyCallNumber {
     // -------
 
     static void createTable() {
-        context.createTableIfNotExists(EmergencyCallNumbers).execute();
+        if(!context.meta().getTables().contains(EmergencyCallNumbers))
+            context.ddl(EmergencyCallNumbers).executeBatch();
     }
 }

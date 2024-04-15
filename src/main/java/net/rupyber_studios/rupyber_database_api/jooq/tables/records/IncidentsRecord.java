@@ -63,16 +63,16 @@ public class IncidentsRecord extends UpdatableRecordImpl<IncidentsRecord> {
     }
 
     /**
-     * Setter for <code>Incidents.priority</code>.
+     * Setter for <code>Incidents.priorityId</code>.
      */
-    public void setPriority(Integer value) {
+    public void setPriorityid(Integer value) {
         set(3, value);
     }
 
     /**
-     * Getter for <code>Incidents.priority</code>.
+     * Getter for <code>Incidents.priorityId</code>.
      */
-    public Integer getPriority() {
+    public Integer getPriorityid() {
         return (Integer) get(3);
     }
 
@@ -91,16 +91,16 @@ public class IncidentsRecord extends UpdatableRecordImpl<IncidentsRecord> {
     }
 
     /**
-     * Setter for <code>Incidents.recipients</code>.
+     * Setter for <code>Incidents.recipientsId</code>.
      */
-    public void setRecipients(Integer value) {
+    public void setRecipientsid(Integer value) {
         set(5, value);
     }
 
     /**
-     * Getter for <code>Incidents.recipients</code>.
+     * Getter for <code>Incidents.recipientsId</code>.
      */
-    public Integer getRecipients() {
+    public Integer getRecipientsid() {
         return (Integer) get(5);
     }
 
@@ -253,15 +253,15 @@ public class IncidentsRecord extends UpdatableRecordImpl<IncidentsRecord> {
     /**
      * Create a detached, initialised IncidentsRecord
      */
-    public IncidentsRecord(Integer id, Integer incidentnumber, Integer emergencycallid, Integer priority, Integer responsecodeid, Integer recipients, Integer incidenttypeid, Integer locationx, Integer locationy, Integer locationz, String description, LocalDateTime createdat, Integer createdby, LocalDateTime closedat, Integer closedby) {
+    public IncidentsRecord(Integer id, Integer incidentnumber, Integer emergencycallid, Integer priorityid, Integer responsecodeid, Integer recipientsid, Integer incidenttypeid, Integer locationx, Integer locationy, Integer locationz, String description, LocalDateTime createdat, Integer createdby, LocalDateTime closedat, Integer closedby) {
         super(IncidentsTable.Incidents);
 
         setId(id);
         setIncidentnumber(incidentnumber);
         setEmergencycallid(emergencycallid);
-        setPriority(priority);
+        setPriorityid(priorityid);
         setResponsecodeid(responsecodeid);
-        setRecipients(recipients);
+        setRecipientsid(recipientsid);
         setIncidenttypeid(incidenttypeid);
         setLocationx(locationx);
         setLocationy(locationy);

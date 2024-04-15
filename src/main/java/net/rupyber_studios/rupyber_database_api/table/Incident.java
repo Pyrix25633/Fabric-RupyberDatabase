@@ -9,8 +9,13 @@ import static net.rupyber_studios.rupyber_database_api.RupyberDatabaseAPI.contex
 import static net.rupyber_studios.rupyber_database_api.jooq.Tables.*;
 
 public class Incident {
+    // -------
+    // Startup
+    // -------
+
     public static void createTable() {
-        context.createTableIfNotExists(Incidents).execute();
+        if(!context.meta().getTables().contains(Incidents))
+            context.ddl(Incidents).executeBatch();
     }
 
     public static void updateTableWithNewResponseCodeIds(PoliceTerminalConfig config,

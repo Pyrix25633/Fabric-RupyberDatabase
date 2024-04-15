@@ -5,6 +5,7 @@ import static net.rupyber_studios.rupyber_database_api.jooq.Tables.*;
 
 public interface IncidentPlayer {
     static void createTable() {
-        context.createTableIfNotExists(IncidentPlayers).execute();
+        if(!context.meta().getTables().contains(IncidentPlayers))
+            context.ddl(IncidentPlayers).executeBatch();
     }
 }

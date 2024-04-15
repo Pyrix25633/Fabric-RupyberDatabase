@@ -75,16 +75,16 @@ public class PlayersRecord extends UpdatableRecordImpl<PlayersRecord> {
     }
 
     /**
-     * Setter for <code>Players.status</code>.
+     * Setter for <code>Players.statusId</code>.
      */
-    public void setStatus(Integer value) {
+    public void setStatusid(Integer value) {
         set(4, value);
     }
 
     /**
-     * Getter for <code>Players.status</code>.
+     * Getter for <code>Players.statusId</code>.
      */
-    public Integer getStatus() {
+    public Integer getStatusid() {
         return (Integer) get(4);
     }
 
@@ -195,14 +195,14 @@ public class PlayersRecord extends UpdatableRecordImpl<PlayersRecord> {
     /**
      * Create a detached, initialised PlayersRecord
      */
-    public PlayersRecord(Integer id, String uuid, String username, Boolean online, Integer status, Integer rankid, String callsign, Boolean callsignreserved, String password, String token, String settings) {
+    public PlayersRecord(Integer id, String uuid, String username, Boolean online, Integer statusid, Integer rankid, String callsign, Boolean callsignreserved, String password, String token, String settings) {
         super(PlayersTable.Players);
 
         setId(id);
         setUuid(uuid);
         setUsername(username);
         setOnline(online);
-        setStatus(status);
+        setStatusid(statusid);
         setRankid(rankid);
         setCallsign(callsign);
         setCallsignreserved(callsignreserved);

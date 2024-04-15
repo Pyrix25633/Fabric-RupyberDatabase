@@ -11,8 +11,13 @@ import net.rupyber_studios.rupyber_database_api.jooq.tables.IncidentPlayersTable
 import net.rupyber_studios.rupyber_database_api.jooq.tables.IncidentTypesTable;
 import net.rupyber_studios.rupyber_database_api.jooq.tables.IncidentsTable;
 import net.rupyber_studios.rupyber_database_api.jooq.tables.PlayersTable;
+import net.rupyber_studios.rupyber_database_api.jooq.tables.PrioritiesTable;
 import net.rupyber_studios.rupyber_database_api.jooq.tables.RanksTable;
+import net.rupyber_studios.rupyber_database_api.jooq.tables.RecipientsTable;
 import net.rupyber_studios.rupyber_database_api.jooq.tables.ResponseCodesTable;
+import net.rupyber_studios.rupyber_database_api.jooq.tables.RolesTable;
+import net.rupyber_studios.rupyber_database_api.jooq.tables.StatusLogsTable;
+import net.rupyber_studios.rupyber_database_api.jooq.tables.StatusesTable;
 
 
 /**
@@ -57,12 +62,37 @@ public class Tables {
     public static final PlayersTable Players = PlayersTable.Players;
 
     /**
+     * The table <code>Priorities</code>.
+     */
+    public static final PrioritiesTable Priorities = PrioritiesTable.Priorities;
+
+    /**
      * The table <code>Ranks</code>.
      */
     public static final RanksTable Ranks = RanksTable.Ranks;
 
     /**
+     * The table <code>Recipients</code>.
+     */
+    public static final RecipientsTable Recipients = RecipientsTable.Recipients;
+
+    /**
      * The table <code>ResponseCodes</code>.
      */
     public static final ResponseCodesTable ResponseCodes = ResponseCodesTable.ResponseCodes;
+
+    /**
+     * The table <code>Roles</code>.
+     */
+    public static final RolesTable Roles = RolesTable.Roles;
+
+    /**
+     * The table <code>Statuses</code>.
+     */
+    public static final StatusesTable Statuses = StatusesTable.Statuses;
+
+    /**
+     * The table <code>StatusLogs</code>.
+     */
+    public static final StatusLogsTable StatusLogs = StatusLogsTable.StatusLogs;
 }

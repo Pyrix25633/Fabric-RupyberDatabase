@@ -4,6 +4,10 @@ import net.fabricmc.api.ModInitializer;
 
 import net.rupyber_studios.rupyber_database_api.config.PoliceTerminalConfig;
 import net.rupyber_studios.rupyber_database_api.table.*;
+import net.rupyber_studios.rupyber_database_api.util.Priority;
+import net.rupyber_studios.rupyber_database_api.util.Recipients;
+import net.rupyber_studios.rupyber_database_api.util.Role;
+import net.rupyber_studios.rupyber_database_api.util.Status;
 import org.jooq.DSLContext;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
@@ -79,13 +83,17 @@ public class RupyberDatabaseAPI implements ModInitializer {
 
 	public static void createPoliceTerminalTables() {
 		Rank.createTable();
+		Status.createTable();
 		Player.createTable();
 		EmergencyCallNumber.createTable();
 		EmergencyCall.createTable();
 		ResponseCode.createTable();
+		Priority.createTable();
+		Recipients.createTable();
 		IncidentType.createTable();
 		IncidentNumber.createTable();
 		Incident.createTable();
+		Role.createTable();
 		IncidentPlayer.createTable();
 	}
 

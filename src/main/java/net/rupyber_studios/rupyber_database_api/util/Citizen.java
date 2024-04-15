@@ -2,7 +2,6 @@ package net.rupyber_studios.rupyber_database_api.util;
 
 import org.jetbrains.annotations.NotNull;
 import org.jooq.*;
-import org.jooq.Record;
 import org.jooq.impl.DSL;
 import org.json.JSONArray;
 
@@ -18,13 +17,13 @@ public interface Citizen {
     }
 
     static @NotNull JSONArray selectCitizens(int page, String orderField, boolean orderAscending) {
-        Result<Record3<String, String, Boolean>> results = context.select(Players.uuid, Players.username, Players.online)
+        Result<Record4<Integer, String, String, Boolean>> results = context.select(Players.id, Players.uuid, Players.username, Players.online)
                 .from(Players)
                 .orderBy(DSL.field(orderField).sort(orderAscending ? SortOrder.ASC : SortOrder.DESC))
                 .limit(page * policeTerminalConfig.recordsPerPage, policeTerminalConfig.recordsPerPage)
                 .fetch();
         JSONArray emergencyCalls = new JSONArray();
-        for(Record3<String, String, Boolean> record : results)
+        for(Record4<Integer, String, String, Boolean> record : results)
             emergencyCalls.put(record.intoMap());
         return emergencyCalls;
     }

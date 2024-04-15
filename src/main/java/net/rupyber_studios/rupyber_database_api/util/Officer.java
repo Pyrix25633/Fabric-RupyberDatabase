@@ -1,7 +1,8 @@
 package net.rupyber_studios.rupyber_database_api.util;
 
-import net.rupyber_studios.rupyber_database_api.jooq.tables.records.PlayersRecord;
+import net.rupyber_studios.rupyber_database_api.table.Player;
 import net.rupyber_studios.rupyber_database_api.table.Rank;
+import net.rupyber_studios.rupyber_database_api.table.StatusLog;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -24,19 +25,19 @@ public interface Officer {
     // ------
 
     @Contract("_ -> new")
-    static @Nullable PlayerInfo selectPlayerInfoFromUuid(@NotNull UUID uuid) {
-        Record3<Integer, Integer, String> playerInfo = context.select(Players.status, Players.rankId, Players.callsign)
+    static @Nullable PlayerInfo selectPlayerInfoWhereUuid(@NotNull UUID uuid) {
+        Record3<Integer, Integer, String> playerInfo = context.select(Players.statusId, Players.rankId, Players.callsign)
                 .from(Players)
                 .where(Players.uuid.eq(uuid.toString()))
                 .fetchOne();
         if(playerInfo == null) return null;
-        return new PlayerInfo(Status.fromId(playerInfo.get(Players.status)),
+        return new PlayerInfo(Status.fromId(playerInfo.get(Players.statusId)),
                 Rank.fromId(playerInfo.get(Players.rankId)),
                 playerInfo.get(Players.callsign));
     }
 
-    static @Nullable Status selectStatusFromUuid(@NotNull UUID uuid) {
-        Record1<Integer> status = context.select(Players.status)
+    static @Nullable Status selectStatusWhereUuid(@NotNull UUID uuid) {
+        Record1<Integer> status = context.select(Players.statusId)
                 .from(Players)
                 .where(Players.uuid.eq(uuid.toString()))
                 .fetchOne();
@@ -44,7 +45,7 @@ public interface Officer {
         return Status.fromId(status.value1());
     }
 
-    static @Nullable Rank selectRankFromUuid(@NotNull UUID uuid) {
+    static @Nullable Rank selectRankWhereUuid(@NotNull UUID uuid) {
         Record1<Integer> rank = context.select(Players.rankId)
                 .from(Players)
                 .where(Players.uuid.eq(uuid.toString()))
@@ -53,7 +54,7 @@ public interface Officer {
         return Rank.fromId(rank.value1());
     }
 
-    static @Nullable String selectCallsignFromUuid(@NotNull UUID uuid) {
+    static @Nullable String selectCallsignWhereUuid(@NotNull UUID uuid) {
         Record1<String> callsign = context.select(Players.callsign)
                 .from(Players)
                 .where(Players.uuid.eq(uuid.toString()))
@@ -62,7 +63,7 @@ public interface Officer {
         return callsign.value1();
     }
 
-    static @Nullable Integer selectIdFromCallsign(String callsign) {
+    static @Nullable Integer selectIdWhereCallsign(String callsign) {
         Record1<Integer> id = context.select(Players.id)
                 .from(Players)
                 .where(Players.callsign.eq(callsign))
@@ -71,7 +72,7 @@ public interface Officer {
         return id.value1();
     }
 
-    static @Nullable UUID selectUuidFromCallsign(String callsign) {
+    static @Nullable UUID selectUuidWhereCallsign(String callsign) {
         Record1<String> uuid = context.select(Players.uuid)
                 .from(Players)
                 .where(Players.callsign.eq(callsign))
@@ -80,7 +81,7 @@ public interface Officer {
         return UUID.fromString(uuid.value1());
     }
 
-    static @NotNull @Unmodifiable List<UUID> selectUuidsFromCallsignLike(String callsign) {
+    static @NotNull @Unmodifiable List<UUID> selectUuidsWhereCallsignLike(String callsign) {
         Result<Record1<String>> result = context.select(Players.uuid)
                 .from(Players)
                 .where(Players.callsign.like(callsign))
@@ -101,15 +102,20 @@ public interface Officer {
     }
 
     static @NotNull JSONArray selectOfficers(int page, String orderField, boolean orderAscending) {
-        Result<Record3<PlayersRecord, String, Integer>> results = context.select(Players, Ranks.rank, Ranks.color.as("rankColor"))
+        Result<Record10<Integer, String, String, Boolean, String, Integer, String, Integer, String, Boolean>> results =
+                context.select(Players.id, Players.uuid, Players.username, Players.online, Statuses.status,
+                                Statuses.color.as("statusColor"), Ranks.rank, Ranks.color.as("rankColor"),
+                                Players.callsign, Players.callsignReserved)
                 .from(Players)
+                .innerJoin(Statuses)
+                .on(Statuses.id.eq(Players.statusId))
                 .innerJoin(Ranks)
                 .on(Ranks.id.eq(Players.rankId))
                 .orderBy(DSL.field(orderField).sort(orderAscending ? SortOrder.ASC : SortOrder.DESC))
                 .limit(page * policeTerminalConfig.recordsPerPage, policeTerminalConfig.recordsPerPage)
                 .fetch();
         JSONArray emergencyCalls = new JSONArray();
-        for(Record3<PlayersRecord, String, Integer> record : results)
+        for(Record10<Integer, String, String, Boolean, String, Integer, String, Integer, String, Boolean> record : results)
             emergencyCalls.put(record.intoMap());
         return emergencyCalls;
     }
@@ -118,7 +124,7 @@ public interface Officer {
         Record1<String> uuid = context.select(Players.uuid)
                 .from(Players)
                 .where(Players.online.eq(true)
-                        .and(Players.status.eq(2))
+                        .and(Players.statusId.eq(Status.AVAILABLE.getId()))
                         .and(Players.rankId.in(context.select(Ranks.id)
                                 .from(Ranks)
                                 .where(Ranks.emergencyOperator.eq(true)))))
@@ -134,10 +140,13 @@ public interface Officer {
     // ------
 
     static void updateStatusWhereUuid(@NotNull UUID uuid, @Nullable Status status) {
+        Integer id = Player.selectIdWhereUuid(uuid);
+        if(id == null) return;
         context.update(Players)
-                .set(Players.status, status != null ? status.getId() : null)
-                .where(Players.uuid.eq(uuid.toString()))
+                .set(Players.statusId, status != null ? status.getId() : null)
+                .where(Players.id.eq(id))
                 .execute();
+        StatusLog.insert(id, status);
     }
 
     static void updateRankWhereUuid(@NotNull UUID uuid, @Nullable Rank rank) {
@@ -147,9 +156,10 @@ public interface Officer {
                 .execute();
     }
 
-    static void updateCallsignFromUuid(@NotNull UUID uuid, @Nullable String callsign, boolean reserved) {
+    static void updateCallsignWhereUuid(@NotNull UUID uuid, @Nullable String callsign, boolean reserved) {
         context.update(Players)
                 .set(Players.callsign, callsign)
+                .set(Players.callsignReserved, reserved)
                 .where(Players.uuid.eq(uuid.toString()))
                 .execute();
     }
@@ -158,7 +168,7 @@ public interface Officer {
     // Authentication
     // --------------
 
-    static @NotNull String initPasswordFromUuid(@NotNull UUID uuid) {
+    static @NotNull String initPasswordWhereUuid(@NotNull UUID uuid) {
         String password = Credentials.generatePassword();
         context.update(Players)
                 .set(Players.password, password)

@@ -15,6 +15,8 @@ import net.rupyber_studios.rupyber_database_api.jooq.tables.EmergencyCallsTable.
 import net.rupyber_studios.rupyber_database_api.jooq.tables.IncidentPlayersTable.IncidentPlayers;
 import net.rupyber_studios.rupyber_database_api.jooq.tables.IncidentTypesTable.IncidentTypes;
 import net.rupyber_studios.rupyber_database_api.jooq.tables.PlayersTable.Players;
+import net.rupyber_studios.rupyber_database_api.jooq.tables.PrioritiesTable.Priorities;
+import net.rupyber_studios.rupyber_database_api.jooq.tables.RecipientsTable.Recipients;
 import net.rupyber_studios.rupyber_database_api.jooq.tables.ResponseCodesTable.ResponseCodes;
 import net.rupyber_studios.rupyber_database_api.jooq.tables.records.IncidentsRecord;
 
@@ -77,9 +79,9 @@ public class IncidentsTable extends TableImpl<IncidentsRecord> {
     public final TableField<IncidentsRecord, Integer> emergencyCallId = createField(DSL.name("emergencyCallId"), SQLDataType.INTEGER.defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.INTEGER)), this, "");
 
     /**
-     * The column <code>Incidents.priority</code>.
+     * The column <code>Incidents.priorityId</code>.
      */
-    public final TableField<IncidentsRecord, Integer> priority = createField(DSL.name("priority"), SQLDataType.INTEGER.nullable(false), this, "");
+    public final TableField<IncidentsRecord, Integer> priorityId = createField(DSL.name("priorityId"), SQLDataType.INTEGER.nullable(false), this, "");
 
     /**
      * The column <code>Incidents.responseCodeId</code>.
@@ -87,9 +89,9 @@ public class IncidentsTable extends TableImpl<IncidentsRecord> {
     public final TableField<IncidentsRecord, Integer> responseCodeId = createField(DSL.name("responseCodeId"), SQLDataType.INTEGER.nullable(false), this, "");
 
     /**
-     * The column <code>Incidents.recipients</code>.
+     * The column <code>Incidents.recipientsId</code>.
      */
-    public final TableField<IncidentsRecord, Integer> recipients = createField(DSL.name("recipients"), SQLDataType.INTEGER.nullable(false), this, "");
+    public final TableField<IncidentsRecord, Integer> recipientsId = createField(DSL.name("recipientsId"), SQLDataType.INTEGER.nullable(false), this, "");
 
     /**
      * The column <code>Incidents.incidentTypeId</code>.
@@ -210,7 +212,7 @@ public class IncidentsTable extends TableImpl<IncidentsRecord> {
 
     @Override
     public List<ForeignKey<IncidentsRecord, ?>> getReferences() {
-        return Arrays.asList(Keys.fk_Incidents_pk_EmergencyCalls, Keys.fk_Incidents_pk_ResponseCodes, Keys.fk_Incidents_pk_IncidentTypes, Keys.fk_Incidents_pk_Players);
+        return Arrays.asList(Keys.fk_Incidents_pk_EmergencyCalls, Keys.fk_Incidents_pk_Priorities, Keys.fk_Incidents_pk_ResponseCodes, Keys.fk_Incidents_pk_Recipients, Keys.fk_Incidents_pk_IncidentTypes, Keys.fk_Incidents_pk_Players);
     }
 
     private transient EmergencyCalls _emergencycalls;
@@ -225,6 +227,18 @@ public class IncidentsTable extends TableImpl<IncidentsRecord> {
         return _emergencycalls;
     }
 
+    private transient Priorities _priorities;
+
+    /**
+     * Get the implicit join path to the <code>Priorities</code> table.
+     */
+    public Priorities priorities() {
+        if (_priorities == null)
+            _priorities = new Priorities(this, Keys.fk_Incidents_pk_Priorities, null);
+
+        return _priorities;
+    }
+
     private transient ResponseCodes _responsecodes;
 
     /**
@@ -235,6 +249,18 @@ public class IncidentsTable extends TableImpl<IncidentsRecord> {
             _responsecodes = new ResponseCodes(this, Keys.fk_Incidents_pk_ResponseCodes, null);
 
         return _responsecodes;
+    }
+
+    private transient Recipients _recipients;
+
+    /**
+     * Get the implicit join path to the <code>Recipients</code> table.
+     */
+    public Recipients recipients() {
+        if (_recipients == null)
+            _recipients = new Recipients(this, Keys.fk_Incidents_pk_Recipients, null);
+
+        return _recipients;
     }
 
     private transient IncidentTypes _incidenttypes;

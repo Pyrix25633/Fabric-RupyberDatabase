@@ -14,6 +14,8 @@ import net.rupyber_studios.rupyber_database_api.jooq.tables.EmergencyCallsTable.
 import net.rupyber_studios.rupyber_database_api.jooq.tables.IncidentPlayersTable.IncidentPlayers;
 import net.rupyber_studios.rupyber_database_api.jooq.tables.IncidentsTable.Incidents;
 import net.rupyber_studios.rupyber_database_api.jooq.tables.RanksTable.Ranks;
+import net.rupyber_studios.rupyber_database_api.jooq.tables.StatusLogsTable.StatusLogs;
+import net.rupyber_studios.rupyber_database_api.jooq.tables.StatusesTable.Statuses;
 import net.rupyber_studios.rupyber_database_api.jooq.tables.records.PlayersRecord;
 
 import org.jooq.Condition;
@@ -80,9 +82,9 @@ public class PlayersTable extends TableImpl<PlayersRecord> {
     public final TableField<PlayersRecord, Boolean> online = createField(DSL.name("online"), SQLDataType.BOOLEAN.nullable(false).defaultValue(DSL.field(DSL.raw("TRUE"), SQLDataType.BOOLEAN)), this, "");
 
     /**
-     * The column <code>Players.status</code>.
+     * The column <code>Players.statusId</code>.
      */
-    public final TableField<PlayersRecord, Integer> status = createField(DSL.name("status"), SQLDataType.INTEGER.defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.INTEGER)), this, "");
+    public final TableField<PlayersRecord, Integer> statusId = createField(DSL.name("statusId"), SQLDataType.INTEGER.defaultValue(DSL.field(DSL.raw("NULL"), SQLDataType.INTEGER)), this, "");
 
     /**
      * The column <code>Players.rankId</code>.
@@ -188,7 +190,19 @@ public class PlayersTable extends TableImpl<PlayersRecord> {
 
     @Override
     public List<ForeignKey<PlayersRecord, ?>> getReferences() {
-        return Arrays.asList(Keys.fk_Players_pk_Ranks);
+        return Arrays.asList(Keys.fk_Players_pk_Statuses, Keys.fk_Players_pk_Ranks);
+    }
+
+    private transient Statuses _statuses;
+
+    /**
+     * Get the implicit join path to the <code>Statuses</code> table.
+     */
+    public Statuses statuses() {
+        if (_statuses == null)
+            _statuses = new Statuses(this, Keys.fk_Players_pk_Statuses, null);
+
+        return _statuses;
     }
 
     private transient Ranks _ranks;
@@ -239,6 +253,18 @@ public class PlayersTable extends TableImpl<PlayersRecord> {
             _incidents = new Incidents(this, null, Keys.fk_Incidents_pk_Players.getInverseKey());
 
         return _incidents;
+    }
+
+    private transient StatusLogs _statuslogs;
+
+    /**
+     * Get the implicit to-many join path to the <code>StatusLogs</code> table
+     */
+    public StatusLogs statuslogs() {
+        if (_statuslogs == null)
+            _statuslogs = new StatusLogs(this, null, Keys.fk_StatusLogs_pk_Players.getInverseKey());
+
+        return _statuslogs;
     }
 
     @Override
